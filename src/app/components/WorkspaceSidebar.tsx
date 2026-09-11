@@ -1,6 +1,7 @@
 import { FolderOpen } from 'lucide-react';
 import Explorer from '../../features/explorer/components/Explorer';
 import GitPanel from '../../features/git/components/GitPanel';
+import Shelves from '../../features/shelves/components/Shelves';
 import type { WorkspaceController } from '../hooks/useWorkspace';
 type Props = {
   model: Pick<
@@ -32,6 +33,16 @@ type Props = {
     | 'resize'
     | 'resizeKey'
     | 'setSidebarWidth'
+    | 'shelves'
+    | 'selectedChanges'
+    | 'shelvesOpen'
+    | 'shelfBusy'
+    | 'selectChange'
+    | 'shelveChanges'
+    | 'showShelves'
+    | 'unshelve'
+    | 'removeShelf'
+    | 'closeShelves'
   >;
 };
 export default function WorkspaceSidebar({ model }: Props) {
@@ -82,6 +93,16 @@ export default function WorkspaceSidebar({ model }: Props) {
     resize,
     resizeKey,
     setSidebarWidth,
+    shelves,
+    selectedChanges,
+    shelvesOpen,
+    shelfBusy,
+    selectChange,
+    shelveChanges,
+    showShelves,
+    unshelve,
+    removeShelf,
+    closeShelves,
   } = model;
   return (
     sidebarVisible && (
@@ -115,6 +136,10 @@ export default function WorkspaceSidebar({ model }: Props) {
                 onBranches={handleBranchMenuBranches}
                 onWorktrees={showWorktrees}
                 onResolve={showConflicts}
+                selected={selectedChanges}
+                onSelect={selectChange}
+                onShelve={shelveChanges}
+                onShelves={showShelves}
               />
             )
           ) : (
@@ -142,6 +167,15 @@ export default function WorkspaceSidebar({ model }: Props) {
           onKeyDown={handleResizeSidebarKeyDown}
           onDoubleClick={handleResizeSidebarDoubleClick}
         />
+        {shelvesOpen && (
+          <Shelves
+            shelves={shelves}
+            busy={shelfBusy}
+            onUnshelve={unshelve}
+            onDelete={removeShelf}
+            onClose={closeShelves}
+          />
+        )}
       </>
     )
   );

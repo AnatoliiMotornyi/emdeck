@@ -1,4 +1,5 @@
 import {
+  Archive,
   Check,
   FileDiff,
   GitBranch,
@@ -25,6 +26,10 @@ interface Props {
   onBranches: () => void;
   onWorktrees: () => void;
   onResolve: (path?: string) => void;
+  selected: string[];
+  onSelect: (path: string, picked: boolean) => void;
+  onShelve: () => void;
+  onShelves: () => void;
 }
 export default function GitPanel({
   git,
@@ -37,6 +42,10 @@ export default function GitPanel({
   onBranches,
   onWorktrees,
   onResolve,
+  selected,
+  onSelect,
+  onShelve,
+  onShelves,
 }: Props) {
   const handleBranchActionClick = () => onBranchAction('fetch');
   const handleBranchActionClick2 = () => onBranchAction('push');
@@ -69,8 +78,19 @@ export default function GitPanel({
       change.conflict
         ? onResolve(change.path)
         : void onAction(isStaged ? 'unstage' : 'stage', change.path, change.originalPath);
+    const handleSelectChange: React.ComponentProps<'input'>['onChange'] = e =>
+      onSelect(change.path, e.target.checked);
     return (
       <div className='change-row' key={change.path}>
+        {!change.conflict && (
+          <input
+            type='checkbox'
+            className='change-select'
+            aria-label={`Select ${isStaged ? 'staged ' : ''}${change.path}`}
+            checked={selected.includes(change.path)}
+            onChange={handleSelectChange}
+          />
+        )}
         <button className='change-file' title={change.path} onClick={handleOpenClick}>
           <FileIcon path={change.path} />
           <span className='truncate'>{basename(change.path)}</span>
@@ -195,6 +215,20 @@ export default function GitPanel({
             <GitFork size={15} />
             Worktrees<span>Manage</span>
           </button>
+          <div className='git-sync-actions'>
+            <button
+              className='button secondary'
+              disabled={busy || selected.length === 0}
+              title='Shelve selected changes'
+              onClick={onShelve}
+            >
+              <Archive size={14} />
+              Shelve
+            </button>
+            <button className='button secondary' title='Shelved changes' onClick={onShelves}>
+              Shelved changes
+            </button>
+          </div>
           <form className='commit-form' onSubmit={handleActionSubmit}>
             <textarea
               aria-label='Commit message'

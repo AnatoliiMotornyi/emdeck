@@ -116,6 +116,11 @@ export async function demoCall<T>(command: string, args: Record<string, unknown>
         commits: [],
       } satisfies GitSnapshot;
       break;
+    case 'shelf_list':
+      // Shelving needs Git and a real filesystem, so the preview has nothing
+      // to list. The mutations fall through to the message below.
+      result = [];
+      break;
     default:
       throw new Error('This feature requires the Emdeck desktop app. Run npm run desktop.');
   }

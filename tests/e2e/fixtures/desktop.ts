@@ -119,6 +119,40 @@ export const test = base.extend<{ desktop: void }>({
                   item => item.path !== args.path
                 );
                 return null;
+              case 'shelf_list':
+                return structuredClone(state.__emdeckShelves ?? []);
+              case 'shelf_create': {
+                const shelf = {
+                  id: 'shelf-1',
+                  name: args.name,
+                  root: args.root,
+                  createdAt: '1757500000000',
+                  entries: (args.paths as string[]).map(path => ({
+                    path,
+                    originalPath: null,
+                    kind: 'modified',
+                  })),
+                };
+                state.__emdeckShelves = [shelf];
+                return shelf;
+              }
+              case 'shelf_apply': {
+                const conflicts = (state.__emdeckShelfConflicts as string[] | undefined) ?? [];
+                const shelves = (state.__emdeckShelves as { id: string }[] | undefined) ?? [];
+                // A shelf that did not fully apply is kept, exactly as the
+                // native service keeps it.
+                if (!conflicts.length)
+                  state.__emdeckShelves = shelves.filter(shelf => shelf.id !== args.id);
+                return {
+                  applied: [],
+                  conflicts: conflicts.map(path => ({ path, reason: 'changed' })),
+                };
+              }
+              case 'shelf_delete':
+                state.__emdeckShelves = (
+                  (state.__emdeckShelves as { id: string }[] | undefined) ?? []
+                ).filter(shelf => shelf.id !== args.id);
+                return null;
               case 'git_diff': {
                 if (state.__emdeckDelayDiff === args.path)
                   await new Promise<void>(resolve => {
