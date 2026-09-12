@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Shelve selected changes into a local per-user store, restoring the committed
+  content and clearing the index so the working tree is genuinely clean.
+  Unshelving reports a file that changed in the meantime instead of overwriting
+  it, and keeps that shelf. Shelves never touch the repository and are not
+  pushed anywhere.
 - Give the Windows Bun shell smoke test a bounded 60-second process budget and
   report launch errors, timeout details and captured output instead of a null
   exit-status assertion. Missing Bun now fails this required integration check.
