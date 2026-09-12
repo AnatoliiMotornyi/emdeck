@@ -249,6 +249,45 @@ fn shelves_are_listed_newest_first_and_scoped_to_their_project() {
     assert_eq!(super::list(&root).unwrap().len(), 1);
 }
 
+/// The TypeScript contracts in `src/shared/contracts/workspace.ts` are mirrored
+/// by hand, so a renamed field would break the UI silently at runtime. Pin the
+/// wire names here, where a rename fails the build instead.
+#[test]
+fn the_wire_format_matches_the_typescript_contract() {
+    let _store = isolate();
+    let (_temp, root) = repo();
+    std::fs::write(root.join("tracked.txt"), "edited\n").unwrap();
+    let shelf = super::create(&root, "wire", &["tracked.txt".to_string()]).unwrap();
+
+    let encoded = serde_json::to_value(&shelf).unwrap();
+    let keys: Vec<&str> = encoded
+        .as_object()
+        .unwrap()
+        .keys()
+        .map(String::as_str)
+        .collect();
+    assert_eq!(keys, vec!["createdAt", "entries", "id", "name", "root"]);
+    let entry = &encoded["entries"][0];
+    let entry_keys: Vec<&str> = entry
+        .as_object()
+        .unwrap()
+        .keys()
+        .map(String::as_str)
+        .collect();
+    assert_eq!(entry_keys, vec!["kind", "originalPath", "path"]);
+    assert_eq!(entry["kind"], "modified");
+
+    let report = super::apply(&root, &shelf.id, false).unwrap();
+    let encoded = serde_json::to_value(&report).unwrap();
+    let keys: Vec<&str> = encoded
+        .as_object()
+        .unwrap()
+        .keys()
+        .map(String::as_str)
+        .collect();
+    assert_eq!(keys, vec!["applied", "conflicts"]);
+}
+
 #[test]
 fn a_shelf_belonging_to_another_project_cannot_be_applied_or_deleted() {
     let _store = isolate();
