@@ -4,7 +4,11 @@ export interface BranchNode {
   children: BranchNode[];
 }
 // Keep full Git names on every node; labels alone are not unique across folders.
-export const branchTree = (branches: string[], query = ''): BranchNode[] => {
+export const branchTree = (
+  branches: string[],
+  query = '',
+  scope: 'local' | 'remote' = 'local'
+): BranchNode[] => {
   const root: BranchNode[] = [];
   const nodes = new Map<string, BranchNode>();
   const filter = query.trim().toLowerCase();
@@ -23,9 +27,13 @@ export const branchTree = (branches: string[], query = ''): BranchNode[] => {
       children = node.children;
     }
   }
+  const isMain = (node: BranchNode) =>
+    !node.children.length &&
+    (scope === 'local' ? node.path === 'main' : /^[^/]+\/main$/.test(node.path));
   const sort = (children: BranchNode[]): BranchNode[] => {
     children.sort(
       (a, b) =>
+        Number(isMain(b)) - Number(isMain(a)) ||
         Number(b.children.length > 0) - Number(a.children.length > 0) ||
         a.name.localeCompare(b.name, undefined, { numeric: true })
     );
