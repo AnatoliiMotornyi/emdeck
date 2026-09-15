@@ -1,5 +1,43 @@
 # React audit — 0.1.19
 
+## Unreleased — direct Tailscale session access
+
+React Doctor 0.9.13 retains the four reviewed Worktrees errors and 68 existing
+warnings. Five new findings were addressed: both new forms specify submit button
+types, and machine restoration caches repeated target properties. Sharing
+settings load only when opened; no new polling or terminal remounts were
+introduced. Tests cover explicit sharing, successful and failed pairing, native
+credential references in preferences, revocation and existing background
+terminal continuity. No rules were suppressed.
+
+## Unreleased — main branch ordering
+
+The pinned 0.9.13 audit retains four reviewed Worktrees errors and 68 warnings,
+with no new findings. The picker passes local/remote scope into its existing
+pure tree service so `main` sorts first in its group. Filtering and folder state
+remain unchanged; unit and browser tests cover ordering and refreshes.
+
+## Unreleased — persistent merge block actions
+
+React Doctor 0.9.13 reports the same four reviewed Worktrees errors and 68
+warnings. The one new advisory recommends a dynamic CodeMirror import in
+`mergeBlockHistory`; this helper already loads through the lazy `MergeCodePane`.
+Block metadata travels with editor transactions so undo and redo restore text,
+boundaries and accepted sides together. Browser tests cover both choice orders,
+replacement, appending, file switching and stale source versions. No diagnostics
+were suppressed or size budgets changed.
+
+## Unreleased — three-pane merge review
+
+React Doctor 0.9.13 reports four existing Worktrees errors and 67 warnings. The
+five new warnings recommend dynamic imports for CodeMirror in `MergeCodePane`,
+its decoration helper and the extracted shared editor theme. These modules
+already load through the application's lazy editor render slots; the source
+panes do not create a new eager editor dependency. They retain their views
+through theme and draft updates, with block choices recorded as undo steps. The
+normal editor shares the extracted syntax palette without changing its lifetime.
+No diagnostics were suppressed.
+
 ## Unreleased — Codex activity signals
 
 The pinned 0.9.13 audit retains four reviewed Worktrees errors and 62 advisory

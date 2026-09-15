@@ -327,6 +327,49 @@ test('source control provides continue and abort when a rebase is in progress', 
     .poll(() => gitCalls(page))
     .toEqual([expect.objectContaining({ action: 'abort', expectedCurrent: 'main' })]);
 });
+test('main stays first locally and inside each remote after filtering and refresh', async ({
+  page,
+}) => {
+  await openBranchFixture(page, 'dima/feature/branch-name');
+  await page.evaluate(() => {
+    const state = window as unknown as {
+      __emdeckGit: { localBranches: string[]; remoteBranches: string[] };
+    };
+    state.__emdeckGit.localBranches.push('aaa', 'dev');
+    state.__emdeckGit.remoteBranches.push('upstream/aaa', 'upstream/feature/task', 'origin/aaa');
+  });
+  await page.getByTitle('Refresh branches', { exact: true }).click();
+  const local = page.getByRole('region', { name: 'Local branches', exact: true });
+  const remote = page.getByRole('region', { name: 'Remote branches', exact: true });
+  const expectMainFirst = async () => {
+    await expect(local.locator(':scope > div > ul > li > button').first()).toHaveAttribute(
+      'aria-label',
+      'Actions for local branch main'
+    );
+    for (const name of ['origin', 'upstream']) {
+      const folder = remote
+        .getByRole('button', { name: `Remote folder ${name}`, exact: true })
+        .locator('..');
+      await expect(folder.locator(':scope > ul > li > button').first()).toHaveAttribute(
+        'aria-label',
+        `Actions for remote branch ${name}/main`
+      );
+    }
+  };
+  await expectMainFirst();
+  const filter = page.getByRole('textbox', { name: 'Filter branches' });
+  await filter.fill('main');
+  await expectMainFirst();
+  await filter.fill('dima');
+  await expect(
+    local.getByRole('button', { name: 'Actions for local branch main', exact: true })
+  ).toHaveCount(0);
+  await filter.fill('');
+  await page.getByTitle('Refresh branches', { exact: true }).click();
+  await expectMainFirst();
+  expect(await gitCalls(page)).toEqual([]);
+});
+
 test('branches have independent local/remote folders and reveal the current branch', async ({
   page,
 }) => {

@@ -29,6 +29,10 @@ control**; abandoned ownership expires after 45 seconds.
 
 ## Remote installation
 
+For direct connections without OpenSSH, use the optional
+[Tailscale pairing workflow](TAILSCALE-SESSIONS.md). Sharing is disabled until
+explicitly enabled on the host. The SSH workflow below remains available.
+
 Build the standalone binary with stable Rust, without Tauri or a WebView:
 
 ```sh
@@ -106,8 +110,10 @@ client. A standalone binary runs on remote machines without the desktop GUI.
 The desktop, CLI, and SSH bridge use a versioned JSON protocol. Local access is
 restricted to a loopback listener with a random capability stored in a private
 per-user directory. The capability is never included in renderer state, URLs, or
-remote profile settings. Remote access runs the same bridge through OpenSSH; no
-unauthenticated network service is exposed.
+remote profile settings. Remote access uses either the bridge through OpenSSH or
+the optional TLS listener bound to a Tailscale IPv4 address. Direct clients pair
+using an expiring, single-use code and keep their revocable credentials in
+native private storage. No unauthenticated terminal access is exposed.
 
 Closing a view releases its input ownership and disconnects its client. Stopping
 a terminal or the server is a separate explicit operation. A slow or

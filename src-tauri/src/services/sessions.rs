@@ -1,4 +1,4 @@
-use emdeck_session::{client, protocol::Action, ssh, storage, Result};
+use emdeck_session::{client, protocol::Action, remote, ssh, storage, Result};
 use serde::Deserialize;
 use std::{
     collections::HashMap,
@@ -12,6 +12,9 @@ use std::{
 #[serde(tag = "kind", rename_all = "lowercase", deny_unknown_fields)]
 pub(crate) enum Target {
     Local,
+    Direct {
+        credential: String,
+    },
     Ssh {
         host: String,
         port: Option<u16>,
@@ -59,12 +62,20 @@ mod tests {
 }
 pub(crate) enum Connection {
     Local(storage::Endpoint),
+    Direct {
+        id: String,
+        credential: remote::Credential,
+    },
     Ssh(Arc<ssh::Bridge>),
 }
 impl Connection {
     fn call(&self, action: Action) -> Result<serde_json::Value> {
+        if matches!(action, Action::Remote(_)) && !matches!(self, Self::Local(_)) {
+            return Err("Sharing settings are available only on this computer.".into());
+        }
         match self {
             Self::Local(endpoint) => client::request(endpoint, action),
+            Self::Direct { credential, .. } => credential.call(action),
             Self::Ssh(bridge) => bridge.call(action),
         }
     }
@@ -85,6 +96,11 @@ impl Sessions {
                     true,
                 )?;
                 Connection::Local(storage::endpoint(&home)?)
+            }
+            Target::Direct { credential: id } => {
+                let credential = remote::Credential::load(&storage::home()?, &id)?;
+                credential.call(Action::Ping)?;
+                Connection::Direct { id, credential }
             }
             Target::Ssh { host, port, binary } => {
                 Connection::Ssh(ssh::Bridge::connect(&ssh::Target { host, port, binary })?)
@@ -133,6 +149,13 @@ impl Sessions {
                 connections.remove(id);
             }
         }
+    }
+    pub fn forget(&self, credential: &str) -> Result<()> {
+        remote::forget(&storage::home()?, credential)?;
+        for connections in self.windows.lock().map_err(|e| e.to_string())?.values_mut() {
+            connections.retain(|_, connection| !matches!(connection.as_ref(), Connection::Direct { id, .. } if id == credential));
+        }
+        Ok(())
     }
     pub fn close_window(&self, window: &str) {
         if let Ok(mut windows) = self.windows.lock() {

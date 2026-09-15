@@ -2,8 +2,7 @@ import { lazy, Suspense } from 'react';
 import type { MergeEditorProps } from '../../shared/contracts/gitConflicts';
 import type { WorkspaceController } from '../hooks/useWorkspace';
 const ConflictResolver = lazy(() => import('../../features/git/components/ConflictResolver'));
-const Editor = lazy(() => import('../../features/editor/components/Editor'));
-const ignoreCursor = () => {};
+const MergeCodePane = lazy(() => import('../../features/editor/components/MergeCodePane'));
 
 type Props = {
   model: Pick<
@@ -36,21 +35,11 @@ export default function WorkspaceConflicts({ model }: Props) {
   const read = (path: string) => readConflict(root, path);
   const resolve: Parameters<typeof ConflictResolver>[0]['port']['resolve'] = request =>
     resolveGitConflict(root, request);
-  const renderEditor = ({ path, content, onChange, onSave }: MergeEditorProps) => {
-    const handleChange = (_path: string, text: string) => onChange(text);
-    return (
-      <Suspense fallback={<p className='loading'>Opening merge editor…</p>}>
-        <Editor
-          file={{ path, content, saved: content, revision: '' }}
-          settings={settings}
-          onChange={handleChange}
-          onSave={onSave}
-          onCursor={ignoreCursor}
-          openPaths={paths}
-        />
-      </Suspense>
-    );
-  };
+  const renderEditor = (props: MergeEditorProps) => (
+    <Suspense fallback={<p className='loading'>Opening merge editor…</p>}>
+      <MergeCodePane {...props} settings={settings} />
+    </Suspense>
+  );
   return (
     <Suspense fallback={null}>
       <ConflictResolver
