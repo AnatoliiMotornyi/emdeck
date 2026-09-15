@@ -36,6 +36,65 @@
   --status-working: #235faa;
   --status-ready: #256b3b;
 }
+/* Two classes, so this keeps winning over the single-class responsive widths
+   below: a collapsed rail must stay narrow at every container size. */
+.session-rail.collapsed {
+  width: 42px;
+  min-width: 42px;
+  align-items: center;
+  padding: 6px 0;
+  gap: 6px;
+}
+.session-rail.collapsed .session-spaces {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  max-height: none;
+  padding: 4px 0;
+}
+.space-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  width: 32px;
+  padding: 6px 0;
+  border-radius: 4px;
+}
+.space-chip b,
+.rail-strip-attention b {
+  font-size: 9px;
+  font-weight: normal;
+  color: var(--muted);
+}
+.space-chip.active {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+.space-chip.active b {
+  color: inherit;
+}
+.space-chip:hover {
+  background: var(--hover);
+}
+.rail-strip-attention {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  width: 100%;
+  padding: 6px 0;
+  color: var(--muted);
+  border-top: 1px solid var(--border);
+}
+.rail-strip-attention.has-attention {
+  color: var(--status-approval);
+}
+.rail-strip-attention.has-attention b {
+  color: inherit;
+}
 .session-rail header {
   display: flex;
   align-items: center;
@@ -313,6 +372,13 @@
   max-width: 230px;
   overflow: hidden;
   white-space: nowrap;
+}
+/* The maximized tab already owns the filled background, so focus is marked by
+   an underline instead: both can be true at once and must stay legible. */
+.session-tabs button.focused {
+  color: var(--accent-ink);
+  font-weight: 600;
+  box-shadow: inset 0 -2px 0 var(--accent);
 }
 .connection-list {
   max-height: 50vh;

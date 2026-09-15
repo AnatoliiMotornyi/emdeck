@@ -105,15 +105,20 @@ newline shortcut with no terminal setup; see its
 
 The terminal toolbar also offers an optional **Workspaces** view: spaces grouped
 by working folder or remote connection, session tabs, and attention filtering.
-Session rows use amber for **Needs approval**, purple for **Waiting for
-answer**, blue for **Working** or recent **Output**, green for **Ready**, red
-for **Error**, and neutral colors for connection and lifecycle states. A
-selected row keeps its activity color in the title, outline and tinted
-background, including keyboard focus. Icons and text identify each state
-alongside the color. The **Needs attention** count and filter include both
-approvals and questions; click a row to open its terminal and respond. Use the
-monitor button to configure cmux TUI, tmux, SSH commands, or provider session
-links. Connections are always explicit. See
+The session tab of the terminal that currently receives your typing is
+underlined and highlighted, so split views stay readable; a maximized tab keeps
+its filled background, and a tab can be both at once. Collapse the **Spaces**
+rail with the panel button in its header to give the terminals the reclaimed
+width. The collapsed strip keeps the space switcher and the attention count, and
+the choice is remembered across restarts. Session rows use amber for **Needs
+approval**, purple for **Waiting for answer**, blue for **Working** or recent
+**Output**, green for **Ready**, red for **Error**, and neutral colors for
+connection and lifecycle states. A selected row keeps its activity color in the
+title, outline and tinted background, including keyboard focus. Icons and text
+identify each state alongside the color. The **Needs attention** count and
+filter include both approvals and questions; click a row to open its terminal
+and respond. Use the monitor button to configure cmux TUI, tmux, SSH commands,
+or provider session links. Connections are always explicit. See
 [Terminal workspaces and remote sessions](REMOTE-SESSIONS.md) for setup,
 disconnect behavior, and which integrations run inside Emdeck or in a browser.
 

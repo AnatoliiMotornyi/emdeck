@@ -1,6 +1,7 @@
 import { paneName } from '../services/terminal-title';
-import { Bot, Folder, Globe, Layers, Monitor, Plus, Search } from 'lucide-react';
-import { useState } from 'react';
+import { Bot, Folder, Globe, Layers, Monitor, PanelLeftClose, Plus, Search } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { readStored, store } from '../../../platform/storage/preferences';
 import type { RemoteProfile } from '../../../shared/contracts/remote';
 import type {
   AgentObservation,
@@ -11,6 +12,7 @@ import type {
 import { agentKind } from '../lib/agents';
 import { sessionStatus } from '../lib/session-status';
 import { terminalSpaces } from '../services/connections';
+import SessionRailStrip from './SessionRailStrip';
 import SessionStatusBadge from './SessionStatusBadge';
 
 interface Props {
@@ -47,10 +49,16 @@ export default function SessionRail({
 }: Props) {
   const [query, setQuery] = useState('');
   const [attentionOnly, setAttentionOnly] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => readStored('relay:spaces-collapsed', false));
+  useEffect(() => {
+    store('relay:spaces-collapsed', collapsed);
+  }, [collapsed]);
   const spaces = terminalSpaces(panes, projectName);
   const handleQuery: React.ChangeEventHandler<HTMLInputElement> = event =>
     setQuery(event.target.value);
   const handleAll = () => onSpace('all');
+  const handleCollapse = () => setCollapsed(true);
+  const handleExpand = () => setCollapsed(false);
   const handleAttention = () => setAttentionOnly(value => !value);
   const statuses = new Map(
     panes.map(pane => [
@@ -59,6 +67,17 @@ export default function SessionRail({
     ])
   );
   const attentionCount = panes.filter(pane => statuses.get(pane.id)!.needsAttention).length;
+  if (collapsed)
+    return (
+      <SessionRailStrip
+        spaces={spaces}
+        selectedSpace={selectedSpace}
+        paneCount={panes.length}
+        attentionCount={attentionCount}
+        onSpace={onSpace}
+        onExpand={handleExpand}
+      />
+    );
   const shown = panes.filter(
     pane =>
       `${paneName(pane)} ${pane.cwd} ${pane.remote?.target.host ?? ''}`
@@ -73,6 +92,15 @@ export default function SessionRail({
         <strong>SPACES</strong>
         <button className='icon-button' title='Manage remote connections' onClick={onConnections}>
           <Monitor size={14} />
+        </button>
+        <button
+          className='icon-button'
+          title='Collapse spaces'
+          aria-label='Collapse spaces'
+          aria-expanded='true'
+          onClick={handleCollapse}
+        >
+          <PanelLeftClose size={14} />
         </button>
       </header>
       <div className='session-spaces'>

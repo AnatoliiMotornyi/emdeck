@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Mark the focused terminal in the workspace session tabs, so split views show
+  which pane receives typing without hiding the others, and collapse the Spaces
+  rail into a 42px strip that keeps the space switcher and attention count while
+  the terminals take the reclaimed width. The collapsed state is remembered.
 - Stabilize workspace status color tests by waiting for terminal focus after
   selecting a session, then checking sidebar focus through keyboard navigation.
 - Clear Claude's Working state when its foreground turn completes, including
