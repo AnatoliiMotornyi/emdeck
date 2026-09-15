@@ -1,6 +1,7 @@
 import { Check, Monitor, Moon, Sun } from 'lucide-react';
 import type { Settings as SettingsType } from '../../../shared/contracts/workspace';
 import { Modal } from '../../../shared/ui/Dialog';
+import { accentPresets } from '../lib/accents';
 import { defaults } from '../lib/defaults';
 export default function Settings({
   settings,
@@ -14,6 +15,8 @@ export default function Settings({
   const handleChange: React.ComponentProps<'input'>['onChange'] = e =>
     update({ reopenLastProject: e.target.checked });
   const handleCustomAccentColorChange: React.ComponentProps<'input'>['onChange'] = e =>
+    update({ accent: e.target.value });
+  const handleAccentPresetChange: React.ComponentProps<'select'>['onChange'] = e =>
     update({ accent: e.target.value });
   const handleChange2: React.ComponentProps<'input'>['onChange'] = e =>
     update({ fontSize: Math.max(10, Math.min(24, +e.target.value)) });
@@ -31,6 +34,7 @@ export default function Settings({
     update({ detectRunScripts: e.target.checked });
   const handleChangeClick = () => onChange(defaults);
   const update = (s: Partial<SettingsType>) => onChange({ ...settings, ...s });
+  const activePreset = accentPresets.find(preset => preset.value === settings.accent)?.value ?? '';
   return (
     <Modal title='Make room for your workflow' onClose={onClose} wide>
       <p className='dialog-description'>
@@ -108,6 +112,21 @@ export default function Settings({
               value={settings.accent}
               onChange={handleCustomAccentColorChange}
             />
+            <select
+              aria-label='More accent colors'
+              title='More accent colors'
+              value={activePreset}
+              onChange={handleAccentPresetChange}
+            >
+              <option value='' disabled>
+                More…
+              </option>
+              {accentPresets.map(preset => (
+                <option key={preset.value} value={preset.value}>
+                  {preset.name}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
       </div>

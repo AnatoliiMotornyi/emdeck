@@ -24,6 +24,7 @@ type Props = {
     | 'gitBusy'
     | 'refreshGit'
     | 'gitAction'
+    | 'discardChanges'
     | 'branchAction'
     | 'showDiff'
     | 'setBranchMenu'
@@ -58,6 +59,8 @@ export default function WorkspaceSidebar({ model }: Props) {
     void branchAction(action, `refs/heads/${git?.branch}`);
   const handleOpen2: React.ComponentProps<typeof GitPanel>['onOpen'] = p => void openFile(p);
   const handleDiff: React.ComponentProps<typeof GitPanel>['onDiff'] = (p, s) => void showDiff(p, s);
+  const handleDiscard: React.ComponentProps<typeof GitPanel>['onDiscard'] = paths =>
+    void discardChanges(paths);
   const handleBranchMenuBranches = () => setBranchMenu(true);
   const handleClick = () => void openProject();
   const handleResizeSidebarPointerDown: React.ComponentProps<'div'>['onPointerDown'] = e =>
@@ -84,6 +87,7 @@ export default function WorkspaceSidebar({ model }: Props) {
     gitBusy,
     refreshGit,
     gitAction,
+    discardChanges,
     branchAction,
     showDiff,
     setBranchMenu,
@@ -130,6 +134,7 @@ export default function WorkspaceSidebar({ model }: Props) {
                 busy={gitBusy}
                 onRefresh={handleRefresh2}
                 onAction={gitAction}
+                onDiscard={handleDiscard}
                 onBranchAction={handleBranchAction}
                 onOpen={handleOpen2}
                 onDiff={handleDiff}

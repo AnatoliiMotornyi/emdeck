@@ -1,5 +1,63 @@
 # React audit — 0.1.19
 
+## Unreleased — Codex activity signals
+
+The pinned 0.9.13 audit retains four reviewed Worktrees errors and 62 advisory
+warnings, with no new rule/file/message findings. Codex title events feed a
+provider-specific domain tracker in the existing terminal lifetime. Screen
+extraction uses a typed cell-attribute port; it adds no polling, remounts or
+provider configuration changes. Browser tests cover title-only completion,
+streaming, question/approval controls, narrow panes and terminal continuity. No
+rules were suppressed.
+
+## Unreleased — agent activity accuracy
+
+The pinned 0.9.13 audit retains four reviewed Worktrees errors and 62 advisory
+warnings, with no new rule/file/message findings. Activity tracking belongs to
+the existing terminal effect and receives parsed screen and input events. It
+adds no polling, mount dependencies or persisted transcripts. Synthetic browser
+tests cover soft wraps, tall screens, submission before repaint, uncertain
+composers, completion and terminal continuity. No rules were suppressed.
+
+## Unreleased — workspace session statuses
+
+The pinned 0.9.13 audit retains the same four reviewed Worktrees errors and 62
+advisory warnings, with no new rule/file findings. Sidebar badges and the
+attention count derive from existing terminal state and bounded screen
+observations; they add no effects, polling or terminal remounts. Browser tests
+check badge contrast in every theme, attention navigation, state transitions and
+session continuity. The pure question detector covers prompt controls and
+rejects stale conversation and ordinary log mentions. No rules were suppressed.
+
+## Unreleased — editor selection visibility
+
+Current-line colors are now translucent so they cannot cover CodeMirror's
+selection layer. No editor state or lifecycle code changed. Browser regressions
+compare painted screenshot pixels for keyboard selections in all three themes,
+focused and unfocused, and verify mouse selections across lines, theme switching
+and undo history. The pinned audit retains the existing reviewed findings.
+
+## Unreleased — Source Control discard actions
+
+The pinned 0.9.13 audit found one new advisory warning for repeated array
+lookups in the unsaved-buffer check; those lookups now use a Set. The existing
+GitPanel complexity warning also covers the new conditional discard controls.
+Those controls delegate IO and confirmation to the application hook; the native
+Git service owns path validation and mutation. Browser tests cover cancellation,
+single/bulk discard, unsaved buffers, stale previews and in-progress operations.
+Replacing a confirmation cancels its pending promise outside React's state
+updaters, so cancelling a native close prompt cannot strand the Git operation.
+The four previously reviewed Worktrees errors remain. No rules were suppressed.
+
+## Unreleased — environment file highlighting
+
+React Doctor 0.9.13 reports the same four reviewed Worktrees errors and 62
+advisory warnings, with no new rule/file findings. The editor loads the dotenv
+tokenizer on demand through its existing language compartment. Theme and
+document lifetimes remain unchanged; browser regressions cover token colors,
+plain-text fallback and undo across theme and tab switches. No rules were
+suppressed or size budgets changed.
+
 ## Unreleased — terminal keyboard input
 
 React Doctor 0.9.13 still reports four reviewed Worktrees errors and 62 advisory

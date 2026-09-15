@@ -20,6 +20,8 @@ import { remoteStatus } from '../services/connections';
 import { paneName } from '../services/terminal-title';
 import { bindTerminalAttachments } from '../lib/terminalAttachments';
 import { bindTerminalKeyboard } from '../lib/terminalKeyboard';
+import { readAgentScreen } from '../services/agent-screen';
+import { createAgentActivityTracker } from '../services/agent-activity-tracker';
 interface Props {
   pane: Pane;
   root: string;
@@ -79,6 +81,8 @@ export default function TerminalPane({
     let activityTimer: ReturnType<typeof setTimeout> | undefined;
     let inspectionTimer: ReturnType<typeof setTimeout> | undefined;
     let observationKey = '';
+    const kind = agentKind(pane.command);
+    const activity = createAgentActivityTracker(kind);
     callbacks.current.onUsage(pane.id, null);
     callbacks.current.onObservation(pane.id, null);
     setObservation(undefined);
@@ -104,7 +108,10 @@ export default function TerminalPane({
       onError: error => callbacks.current.onError(error),
     });
     const title = term.onTitleChange(value => {
-      if (!disposed) callbacks.current.onTitle(pane.id, value);
+      if (!disposed) {
+        if (!pane.remote) activity.title(value);
+        callbacks.current.onTitle(pane.id, value);
+      }
     });
     const fitter = createTerminalFitter(term, () => fit.fit(), {
       request: callback => requestAnimationFrame(callback),
@@ -143,23 +150,22 @@ export default function TerminalPane({
     element.addEventListener('wheel', fitter.cancel, { capture: true, passive: true });
     element.addEventListener('pointerdown', fitter.cancel, true);
     element.addEventListener('keydown', fitter.cancel, true);
+    const publishObservation = (next: AgentObservation) => {
+      const key = JSON.stringify([next.activity, next.contextPercent, next.model]);
+      if (key !== observationKey) {
+        observationKey = key;
+        setObservation(next);
+        callbacks.current.onObservation(pane.id, next);
+      }
+    };
     const inspect = () => {
-      if (inspectionTimer || disposed || agentKind(pane.command) === 'shell') return;
+      if (inspectionTimer || disposed || kind === 'shell' || pane.remote) return;
       inspectionTimer = setTimeout(() => {
         inspectionTimer = undefined;
         if (disposed) return;
-        const buffer = term.buffer.active;
-        const end = Math.min(buffer.length, buffer.baseY + term.rows);
-        const lines = [];
-        for (let i = Math.max(0, end - 28); i < end; i++)
-          lines.push(buffer.getLine(i)?.translateToString(true) ?? '');
-        const next = inspectAgentScreen(agentKind(pane.command), lines);
-        const key = JSON.stringify([next.activity, next.contextPercent, next.model]);
-        if (key !== observationKey) {
-          observationKey = key;
-          setObservation(next);
-          callbacks.current.onObservation(pane.id, next);
-        }
+        const lines = readAgentScreen(term.buffer.active, term.rows, kind === 'codex');
+        const next = inspectAgentScreen(kind, lines);
+        publishObservation({ ...next, activity: activity.inspect(lines) });
       }, 350);
     };
     let lastState: PaneState | undefined;
@@ -264,6 +270,13 @@ export default function TerminalPane({
     };
     void start();
     const input = term.onData(data => {
+      if (!ended && native && !pane.remote && kind !== 'shell') {
+        const next = inspectAgentScreen(
+          kind,
+          readAgentScreen(term.buffer.active, term.rows, kind === 'codex')
+        );
+        publishObservation({ ...next, activity: activity.input(data) });
+      }
       if (nativeId.current)
         void call('terminal_write', { id: nativeId.current, data }).catch(
           callbacks.current.onError

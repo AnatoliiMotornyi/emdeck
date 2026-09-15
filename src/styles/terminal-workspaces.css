@@ -15,6 +15,11 @@
   min-height: 0;
 }
 .session-rail {
+  --status-approval: #f1c46b;
+  --status-question: #cfb1ff;
+  --status-working: #89bfff;
+  --status-ready: #93d8a5;
+  --status-neutral: var(--subtle);
   display: flex;
   flex-direction: column;
   width: 214px;
@@ -24,6 +29,12 @@
   border-right: 1px solid var(--border);
   background: var(--panel);
   font-family: var(--mono);
+}
+:root[data-theme="light"] .session-rail {
+  --status-approval: #815005;
+  --status-question: #7441aa;
+  --status-working: #235faa;
+  --status-ready: #256b3b;
 }
 .session-rail header {
   display: flex;
@@ -84,7 +95,6 @@
   color: var(--muted);
 }
 .space-button.active,
-.rail-session.active,
 .session-tabs button.active {
   background: var(--accent-soft);
   color: var(--accent-ink);
@@ -157,12 +167,25 @@
 }
 .rail-attention {
   margin: 0 10px 5px;
-  padding: 4px 0;
-  font-size: 9px;
-  color: var(--muted);
+  padding: 6px;
+  font-size: 10px;
+  color: var(--subtle);
+  justify-content: space-between;
+  border-radius: 4px;
+}
+.rail-attention b {
+  min-width: 18px;
+  padding: 2px 4px;
+  border-radius: 8px;
+  background: var(--hover);
+}
+.rail-attention.has-attention {
+  color: var(--status-approval);
+  background: color-mix(in srgb, var(--status-approval) 12%, var(--panel));
 }
 .rail-attention.active {
-  color: var(--accent-ink);
+  outline: 1px solid currentColor;
+  outline-offset: -1px;
 }
 .rail-sessions {
   flex: 1;
@@ -171,24 +194,85 @@
   padding: 0 5px;
 }
 .rail-session {
+  --session-status-color: var(--status-neutral);
   padding: 10px 8px;
   width: 100%;
   text-align: left;
   align-items: flex-start;
   gap: 8px;
   border-radius: 4px;
+  border-left: 3px solid var(--session-status-color);
+  margin-bottom: 4px;
 }
 .rail-session > i {
   margin-top: 3px;
+  background: var(--session-status-color);
 }
-.rail-session.attention small:first-of-type {
-  color: var(--warning, #dec48b);
+.rail-session strong {
+  color: var(--session-status-color);
+}
+.rail-session[data-status="approval"] {
+  --session-status-color: var(--status-approval);
+}
+.rail-session[data-status="question"] {
+  --session-status-color: var(--status-question);
+}
+.rail-session[data-status="working"],
+.rail-session[data-status="output"] {
+  --session-status-color: var(--status-working);
+}
+.rail-session[data-status="ready"] {
+  --session-status-color: var(--status-ready);
+}
+.rail-session[data-status="error"] {
+  --session-status-color: var(--danger);
+}
+.rail-session[data-needs-attention="true"] {
+  background: color-mix(in srgb, var(--session-status-color) 9%, var(--panel));
+}
+.rail-session.active {
+  background: color-mix(in srgb, var(--session-status-color) 12%, var(--panel));
+  outline: 1px solid var(--session-status-color);
+  outline-offset: -1px;
+}
+.rail-session:focus-visible {
+  outline-color: var(--session-status-color);
+}
+.rail-session:hover {
+  background: color-mix(in srgb, var(--session-status-color) 12%, var(--hover));
+}
+.rail-session .rail-status {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  width: fit-content;
+  max-width: 100%;
+  padding: 3px 5px;
+  color: var(--session-status-color);
+  background: color-mix(in srgb, var(--session-status-color) 13%, var(--panel));
+  border: 1px solid color-mix(in srgb, var(--session-status-color) 30%, var(--border));
+  border-radius: 4px;
+  font: 600 10px/1.4 var(--sans);
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.rail-session .rail-provider {
+  display: flex;
+  justify-content: space-between;
+  color: var(--subtle);
+}
+.rail-provider b {
+  color: inherit;
 }
 .rail-location {
   display: flex !important;
   gap: 5px;
   align-items: center;
   opacity: 0.8;
+}
+.rail-location span {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .rail-note {
   color: var(--muted);

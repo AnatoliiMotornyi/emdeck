@@ -7,6 +7,35 @@
   Unshelving reports a file that changed in the meantime instead of overwriting
   it, and keeps that shelf. Shelves never touch the repository and are not
   pushed anywhere.
+- Stabilize workspace status color tests by waiting for terminal focus after
+  selecting a session, then checking sidebar focus through keyboard navigation.
+- Clear Claude's Working state when its foreground turn completes, including
+  modern done footers with background shells, custom status lines and unsent
+  drafts. Retained completion history cannot finish a newly submitted task.
+- Stabilize the dotenv color regression check across file/theme switches by
+  waiting for one consistent snapshot of the expected theme's token colors.
+- Track Codex workspace activity through its terminal-title updates, retaining
+  Working during streaming and detecting completion, approval requests and
+  freeform or multi-step questions. Recognize dimmed composer placeholders and
+  stop treating Codex's pre-answer divider as completion.
+- Keep selected session titles, outlines and backgrounds consistent with their
+  activity color, including keyboard focus, instead of the global green accent.
+- Fix false Ready statuses while agents are working: recognize changing spinner
+  labels, tall live screens and wrapped controls; invalidate stale prompts on
+  submission, and report uncertain activity instead of guessing completion.
+- Highlight workspace session states with colored borders, icons and readable
+  badges. Distinguish approval requests from detected questions waiting for an
+  answer, and include both in the attention count and filter.
+- Keep editor selections visible on the current line in dark, light and graphite
+  themes, including after focus and theme changes, without resetting undo
+  history.
+- Discard tracked changes from Source Control for one file or all files, with an
+  explicit restore/delete preview, protection for unsaved editor buffers and
+  changed-on-disk files, and support for staged edits, renames and deletions.
+- Launch Windows debug builds as desktop applications without an extra console
+  window whose Close button also terminates the IDE.
+- Highlight environment files (`.env`, `.env.*`, and `*.env`), including keys,
+  values, comments, export prefixes and quoted multiline values in every theme.
 - Give the Windows Bun shell smoke test a bounded 60-second process budget and
   report launch errors, timeout details and captured output instead of a null
   exit-status assertion. Missing Bun now fails this required integration check.

@@ -8,7 +8,6 @@ import {
   syntaxHighlighting,
 } from '@codemirror/language';
 import { highlightSelectionMatches, search, searchKeymap } from '@codemirror/search';
-import type { Extension } from '@codemirror/state';
 import { Compartment, EditorState } from '@codemirror/state';
 import {
   drawSelection,
@@ -23,22 +22,7 @@ import { tags } from '@lezer/highlight';
 import { useEffect, useRef } from 'react';
 import type { OpenFile, Settings } from '../../../shared/contracts/workspace';
 import { useLatest } from '../../../shared/hooks/useLatest';
-async function language(path: string): Promise<Extension> {
-  const ext = path.split('.').pop()?.toLowerCase();
-  if (['ts', 'tsx', 'js', 'jsx', 'mjs', 'cjs'].includes(ext ?? ''))
-    return (await import('@codemirror/lang-javascript')).javascript({
-      typescript: ext === 'ts' || ext === 'tsx',
-      jsx: ext === 'jsx' || ext === 'tsx',
-    });
-  if (ext === 'json') return (await import('@codemirror/lang-json')).json();
-  if (ext === 'css') return (await import('@codemirror/lang-css')).css();
-  if (ext === 'html') return (await import('@codemirror/lang-html')).html();
-  if (['md', 'markdown', 'mdown', 'mkd'].includes(ext ?? ''))
-    return (await import('@codemirror/lang-markdown')).markdown();
-  if (ext === 'py') return (await import('@codemirror/lang-python')).python();
-  if (ext === 'rs') return (await import('@codemirror/lang-rust')).rust();
-  return [];
-}
+import { loadLanguage } from '../lib/language';
 const darkHighlight = HighlightStyle.define([
   { tag: tags.keyword, color: '#c5a1e9' },
   { tag: [tags.string, tags.special(tags.string)], color: '#b8cf8b' },
@@ -183,7 +167,7 @@ export default function Editor({
     else view.current = new EditorView({ state, parent: host.current });
     view.current.dispatch({ effects: tc.reconfigure(theme(settings)) });
     let cancelled = false;
-    language(file.path)
+    loadLanguage(file.path)
       .then(ext => {
         if (!cancelled) view.current?.dispatch({ effects: lc.reconfigure(ext) });
       })

@@ -8,8 +8,10 @@ import type {
   Pane,
   PaneState,
 } from '../../../shared/contracts/workspace';
-import { agentKind, agentStatus } from '../lib/agents';
-import { remoteStatus, terminalSpaces } from '../services/connections';
+import { agentKind } from '../lib/agents';
+import { sessionStatus } from '../lib/session-status';
+import { terminalSpaces } from '../services/connections';
+import SessionStatusBadge from './SessionStatusBadge';
 
 interface Props {
   panes: Pane[];
@@ -50,12 +52,19 @@ export default function SessionRail({
     setQuery(event.target.value);
   const handleAll = () => onSpace('all');
   const handleAttention = () => setAttentionOnly(value => !value);
+  const statuses = new Map(
+    panes.map(pane => [
+      pane.id,
+      sessionStatus(states[pane.id], observations[pane.id], !!pane.remote),
+    ])
+  );
+  const attentionCount = panes.filter(pane => statuses.get(pane.id)!.needsAttention).length;
   const shown = panes.filter(
     pane =>
       `${paneName(pane)} ${pane.cwd} ${pane.remote?.target.host ?? ''}`
         .toLowerCase()
         .includes(query.toLowerCase()) &&
-      (!attentionOnly || agentStatus(states[pane.id], observations[pane.id]).tone === 'attention')
+      (!attentionOnly || statuses.get(pane.id)!.needsAttention)
   );
   return (
     <aside className='session-rail' aria-label='Terminal workspaces'>
@@ -143,38 +152,45 @@ export default function SessionRail({
         />
       </div>
       <button
-        className={`rail-attention ${attentionOnly ? 'active' : ''}`}
+        className={`rail-attention ${attentionOnly ? 'active' : ''} ${attentionCount ? 'has-attention' : ''}`}
+        aria-label='Needs attention'
         aria-pressed={attentionOnly}
+        title='Show sessions waiting for an approval or answer'
         onClick={handleAttention}
       >
-        Needs attention{attentionOnly ? ' · showing only' : ''}
+        Needs attention
+        <b aria-label={`${attentionCount} sessions need attention`}>{attentionCount}</b>
       </button>
       <div className='rail-sessions'>
         {shown.map(pane => {
-          const status = agentStatus(states[pane.id], observations[pane.id]);
+          const status = statuses.get(pane.id)!;
           const context = usage[pane.id]?.contextPercent ?? observations[pane.id]?.contextPercent;
           const handleSelect = () => onPane(pane);
           return (
             <button
-              className={`rail-session ${selectedPane === pane.id ? 'active' : ''} ${status.tone}`}
+              className={`rail-session ${selectedPane === pane.id ? 'active' : ''}`}
+              data-status={status.kind}
+              data-needs-attention={status.needsAttention}
+              aria-pressed={selectedPane === pane.id}
               key={pane.id}
               onClick={handleSelect}
               title={`Focus ${paneName(pane)}`}
             >
-              <i style={{ background: pane.color }} />
+              <i aria-hidden='true' />
               <span>
                 <strong>{paneName(pane)}</strong>
-                <small>
-                  {pane.remote
-                    ? remoteStatus(states[pane.id])
-                    : `${status.label} · ${agentKind(pane.command)}`}
-                </small>
+                <SessionStatusBadge status={status} />
                 <small className='rail-location'>
                   <Folder size={10} />
-                  {pane.remote?.target.host ?? (pane.cwd || projectName)}
+                  <span>{pane.remote?.target.host ?? (pane.cwd || projectName)}</span>
+                </small>
+                <small className='rail-provider'>
+                  {pane.remote?.target.backend ?? agentKind(pane.command)}
+                  {!pane.remote && context != null && (
+                    <b title='Context used'>{context.toFixed(0)}%</b>
+                  )}
                 </small>
               </span>
-              {!pane.remote && context != null && <b title='Context used'>{context.toFixed(0)}%</b>}
             </button>
           );
         })}

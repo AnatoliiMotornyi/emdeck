@@ -70,6 +70,7 @@ export function useWorkspaceState() {
   const [palette, setPalette] = useState(false);
   const [paletteQuery, setPaletteQuery] = useState('');
   const [dialog, setDialog] = useState<DialogSpec | null>(null);
+  const pendingDialog = useRef<DialogSpec['resolve'] | null>(null);
   const [context, setContext] = useState<{
     entry: Entry;
     x: number;
@@ -118,7 +119,17 @@ export function useWorkspaceState() {
   );
   const ask = useCallback(
     (spec: Omit<DialogSpec, 'resolve'>) =>
-      new Promise<Record<string, string> | null>(resolve => setDialog({ ...spec, resolve })),
+      new Promise<Record<string, string> | null>(resolve => {
+        // A native close request may replace a confirmation. Cancel its promise
+        // so the interrupted operation can release its busy state and locks.
+        pendingDialog.current?.(null);
+        const settle: DialogSpec['resolve'] = value => {
+          if (pendingDialog.current === settle) pendingDialog.current = null;
+          resolve(value);
+        };
+        pendingDialog.current = settle;
+        setDialog({ ...spec, resolve: settle });
+      }),
     []
   );
   const confirm = useCallback(

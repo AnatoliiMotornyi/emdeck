@@ -11,6 +11,7 @@ import type {
 } from '../../shared/contracts/workspace';
 import type { SshTarget } from '../../shared/contracts/remote';
 import type { ConflictResolution } from '../../shared/contracts/gitConflicts';
+import type { DiscardRequest } from '../../shared/contracts/gitDiscard';
 export const native = isTauri();
 export async function call<C extends DesktopCommand>(
   command: C,
@@ -33,6 +34,8 @@ export const api = {
   save: (root: string, path: string, content: string, revision: string) =>
     call('save_file', { root, path, content, revision }),
   git: (root: string) => call('git_snapshot', { root }),
+  previewDiscard: (root: string, paths: string[]) => call('git_discard_preview', { root, paths }),
+  discard: (root: string, request: DiscardRequest) => call('git_discard_apply', { root, request }),
   conflict: (root: string, path: string) => call('git_conflict', { root, path }),
   resolveConflict: (root: string, request: ConflictResolution) =>
     call('git_resolve_conflict', { root, request }),

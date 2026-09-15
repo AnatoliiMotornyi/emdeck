@@ -2,6 +2,7 @@
 name = "emdeck-session"
 version = "0.1.0"
 edition = "2021"
+rust-version = "1.89"
 publish = false
 license = "Apache-2.0"
 description = "Emdeck's independent, headless terminal session server"

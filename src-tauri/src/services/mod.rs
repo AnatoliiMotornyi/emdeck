@@ -4,6 +4,7 @@ pub(crate) mod codex_usage;
 pub(crate) mod git;
 pub(crate) mod git_branches;
 pub(crate) mod git_conflicts;
+pub(crate) mod git_discard;
 pub(crate) mod markdown;
 pub(crate) mod remote;
 pub(crate) mod sessions;

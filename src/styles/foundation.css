@@ -6,7 +6,8 @@
   --editor: #171a1f;
   --elevated: #20242b;
   --hover: #242932;
-  --line: #1d2128;
+  /* CodeMirror paints selection behind lines; keep their backgrounds translucent. */
+  --line: #ffffff08;
   --border: #292d35;
   --text: #cdd2da;
   --strong: #eef0f4;
@@ -31,7 +32,7 @@
   --editor: #fff;
   --elevated: #e9edf2;
   --hover: #e2e7ef;
-  --line: #f6f8fb;
+  --line: #2047800a;
   --border: #dce1e8;
   --text: #424b59;
   --strong: #202833;
@@ -49,7 +50,7 @@
   --editor: #242425;
   --elevated: #2e2e30;
   --hover: #373739;
-  --line: #2a2a2c;
+  --line: #ffffff08;
   --border: #39393c;
   --text: #d4d3d1;
   --strong: #f4f3f0;
