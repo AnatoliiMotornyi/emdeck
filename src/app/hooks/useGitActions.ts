@@ -167,6 +167,7 @@ export function useGitActions({
         'continue',
         'abort',
         'update',
+        'sync',
       ].includes(action) &&
       hasUnsavedFiles(latest.current.files)
     ) {
@@ -317,7 +318,7 @@ export function useGitActions({
       );
     } catch (error) {
       fail(error);
-      if (['merge', 'rebase', 'checkout-rebase', 'continue'].includes(action)) {
+      if (['merge', 'rebase', 'checkout-rebase', 'continue', 'sync'].includes(action)) {
         setSidebar('git');
         setSidebarVisible(true);
       }
@@ -327,9 +328,15 @@ export function useGitActions({
       if (attempted) {
         const result = await refresh();
         if (
-          ['merge', 'rebase', 'checkout-rebase', 'checkout-update', 'update', 'continue'].includes(
-            action
-          ) &&
+          [
+            'merge',
+            'rebase',
+            'checkout-rebase',
+            'checkout-update',
+            'update',
+            'continue',
+            'sync',
+          ].includes(action) &&
           result?.changes.some(change => change.conflict)
         )
           showConflicts();
