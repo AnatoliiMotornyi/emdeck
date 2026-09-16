@@ -326,6 +326,19 @@ a merge/rebase; abort discards conflict-resolution edits made during that
 operation. The same application process serializes Git mutations across windows
 sharing a repository; external Git clients remain outside this coordination.
 
+**Shelve** sets selected changes aside so you can return to a clean working
+tree. Tick the changes you want in Source Control and choose Shelve: Emdeck
+copies each file's current bytes and its committed bytes into a per-user store
+outside the project, restores the committed content, and clears those paths from
+the index so nothing is left staged. This is not `git stash` and writes nothing
+into the repository; shelves are local to your machine and are never pushed.
+
+**Shelved changes** lists what you have set aside for the current project,
+newest first. Unshelving writes the saved bytes back and then discards the
+shelf. A file that changed after it was shelved is reported by name and left
+untouched, and its shelf is kept so no work is lost. Deleting a shelf is
+permanent — the saved bytes exist nowhere else.
+
 **Compare with…** opens a regular editor tab with the patch and up to 50 unique
 commits from each branch, alongside the full commit counts. **Show Diff with
 Working Tree** compares the selected branch with saved tracked files, including

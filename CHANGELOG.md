@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Shelve selected changes into a local per-user store, restoring the committed
+  content and clearing the index so the working tree is genuinely clean.
+  Unshelving reports a file that changed in the meantime instead of overwriting
+  it, and keeps that shelf. Shelves never touch the repository and are not
+  pushed anywhere.
 - Stabilize workspace status color tests by waiting for terminal focus after
   selecting a session, then checking sidebar focus through keyboard navigation.
 - Clear Claude's Working state when its foreground turn completes, including

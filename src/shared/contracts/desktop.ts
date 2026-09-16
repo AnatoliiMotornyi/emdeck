@@ -7,6 +7,8 @@ import type {
   FileData,
   GitSnapshot,
   Project,
+  Shelf,
+  UnshelveReport,
   Worktree,
 } from './workspace';
 import type { SshTarget } from './remote';
@@ -57,6 +59,10 @@ export interface DesktopCommands {
   git_worktrees: Command<Repository, Worktree[]>;
   git_worktree_create: Command<Repository & { request: CreateWorktree }, string>;
   git_worktree_remove: Command<FileLocation, void>;
+  shelf_list: Command<Repository, Shelf[]>;
+  shelf_create: Command<Repository & { name: string; paths: string[] }, Shelf>;
+  shelf_apply: Command<Repository & { id: string; force: boolean }, UnshelveReport>;
+  shelf_delete: Command<Repository & { id: string }, void>;
   terminal_spawn: Command<
     Repository & {
       cwd: string;
