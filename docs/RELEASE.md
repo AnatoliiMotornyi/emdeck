@@ -46,6 +46,45 @@ must be committed whenever the locked dependency graph changes. See
 [Dependency review](DEPENDENCIES.md) for exact upstream maintenance
 acknowledgments; no security vulnerability is waived.
 
+## Prepare release notes
+
+Ordinary PRs add independent [release-note fragments](../.changes/README.md). Do
+not prepend entries to `CHANGELOG.md`: its Unreleased section stays fixed so
+concurrent contributions do not edit the same lines. Existing pending entries
+were migrated into `legacy-unreleased.md`; new PRs leave that fragment
+unchanged.
+
+When preparing a release on `dev`:
+
+1. Review `bun run changelog:preview` and update fragment wording as needed.
+2. Set the new version consistently in `package.json`, `src-tauri/Cargo.toml`,
+   `src-tauri/tauri.conf.json` and the Cargo lockfile.
+3. Preview and then write the release section (replace `0.1.23` with the
+   version):
+
+   ```sh
+   bun run changelog:release 0.1.23
+   bun run changelog:release 0.1.23 --write
+   bun run release:check
+   ```
+
+4. Review and commit the changelog, consumed-fragment deletions and version
+   files together through the normal PR process. Promote `dev` to `main` with a
+   merge commit, and create the version tag on the reviewed release commit.
+
+The release command defaults to a preview, orders fragments by filename, keeps
+earlier releases intact, and refuses an existing version. It writes the full
+changelog before deleting the exact fragments included in it; it never commits,
+tags or publishes. Repeating it for the same version fails without changing
+files. CI checks fragment format and the fixed Unreleased notice. Draft release
+metadata rejects a tag with unconsumed fragments so notes cannot be omitted from
+a published release. Preview packages and ordinary development checks still
+allow pending fragments.
+
+During this transition, older open PRs may still edit Unreleased. Move their new
+notes into a unique fragment and retain the fixed notice when resolving those
+conflicts. Future PRs then avoid this shared changelog edit entirely.
+
 ## Workflows
 
 - **Check Emdeck:** formatting, architecture, release metadata, tests, native

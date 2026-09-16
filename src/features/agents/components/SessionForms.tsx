@@ -27,8 +27,10 @@ export default function SessionForms({
   const [binary, setBinary] = useState('emdeck-session');
   const [port, setPort] = useState('');
   const [machineId, setMachineId] = useState('local');
-  const [root, setRoot] = useState(projectRoot ?? '');
-  const [workspaceName, setWorkspaceName] = useState(projectName ?? 'Workspace');
+  const [rootOverride, setRoot] = useState<string | null>(null);
+  const [nameOverride, setWorkspaceName] = useState<string | null>(null);
+  const root = rootOverride ?? projectRoot ?? '';
+  const workspaceName = nameOverride ?? projectName ?? 'Workspace';
   const [name, setName] = useState('Terminal');
   const [command, setCommand] = useState('');
   const [shell, setShell] = useState('');
@@ -84,31 +86,6 @@ export default function SessionForms({
   };
   return (
     <div className='session-forms'>
-      <details>
-        <summary>Add an SSH machine</summary>
-        <form onSubmit={handleSave}>
-          <p>
-            Install the standalone <code>emdeck-session</code> binary on that machine and run{' '}
-            <code>emdeck-session start</code>. Configure SSH keys and verify its host key using your
-            normal SSH client first.
-          </p>
-          <label>
-            SSH alias or user@host
-            <input required value={host} onChange={handleHost} />
-          </label>
-          <label>
-            SSH port (optional)
-            <input type='number' min='1' max='65535' value={port} onChange={handlePort} />
-          </label>
-          <label>
-            Remote executable
-            <input required value={binary} onChange={handleBinary} />
-          </label>
-          <button type='submit' className='button secondary'>
-            Save machine
-          </button>
-        </form>
-      </details>
       <details>
         <summary>New background terminal</summary>
         <form onSubmit={handleLaunch}>
@@ -173,6 +150,31 @@ export default function SessionForms({
           {error && <p role='alert'>{error}</p>}
           <button className='button primary' type='submit' disabled={!machine?.connection || busy}>
             {busy ? 'Starting…' : 'Start background terminal'}
+          </button>
+        </form>
+      </details>
+      <details>
+        <summary>Add an SSH machine</summary>
+        <form onSubmit={handleSave}>
+          <p>
+            Install the standalone <code>emdeck-session</code> binary on that machine and run{' '}
+            <code>emdeck-session start</code>. Configure SSH keys and verify its host key using your
+            normal SSH client first.
+          </p>
+          <label>
+            SSH alias or user@host
+            <input required value={host} onChange={handleHost} />
+          </label>
+          <label>
+            SSH port (optional)
+            <input type='number' min='1' max='65535' value={port} onChange={handlePort} />
+          </label>
+          <label>
+            Remote executable
+            <input required value={binary} onChange={handleBinary} />
+          </label>
+          <button type='submit' className='button secondary'>
+            Save machine
           </button>
         </form>
       </details>

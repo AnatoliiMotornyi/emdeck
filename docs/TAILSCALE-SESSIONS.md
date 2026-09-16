@@ -14,9 +14,10 @@ router port forwarding.
    sharing port. Keep the desktop awake and connected.
 2. In Emdeck on the desktop, select **Background sessions** from the terminal
    view menu, then **Connect local server**.
-3. Expand **Share this computer over Tailscale**. Enter the desktop's Tailscale
-   IPv4 address, visible in Tailscale or from `tailscale ip -4`. The default TCP
-   port is `48192`.
+3. Open **Machine settings** under **This computer**, then expand **Share this
+   computer over Tailscale**. Enter the desktop's Tailscale IPv4 address,
+   visible in Tailscale or from `tailscale ip -4`. The default TCP port is
+   `48192`.
 4. Select **Enable sharing**. Emdeck binds only that address, never all network
    interfaces. If the OS firewall blocks connections, add a rule for this port
    restricted to the laptop's Tailscale address. Emdeck does not alter firewall
@@ -46,10 +47,11 @@ This does not configure Emdeck to start automatically at OS boot.
    that desktop, and enter `claude` or `codex`. The CLI must already be
    installed and authenticated there.
 
-**Disconnect** or closing the laptop IDE leaves the desktop's processes running.
-After a network interruption, select **Connect** again. Enabled machines are
-remembered and reconnect when the background view opens on a later app launch.
-Opening a project does not automatically start an agent.
+**Disconnect** in the machine's **Machine settings**, or closing the laptop IDE,
+leaves the desktop's processes running. After a network interruption, select
+**Connect** again. Enabled machines are remembered and reconnect when the
+background view opens on a later app launch. Opening a project does not
+automatically start an agent.
 
 ## Manage access
 
@@ -59,10 +61,11 @@ sharing** closes the network listener and cancels pending pairing codes. Neither
 operation stops terminals. A command already accepted for execution cannot be
 undone by revocation; later requests and pending output responses are denied.
 
-**Forget** on the laptop deletes its local saved credential and machine profile;
-it does not revoke other copies of that credential. Use **Revoke** on the
-desktop to invalidate access everywhere. Re-pair after changing the desktop's
-Tailscale IP, sharing port or server identity. Up to 32 devices may be paired.
+**Forget** in the laptop's **Machine settings** deletes its local saved
+credential and machine profile; it does not revoke other copies of that
+credential. Use **Revoke** on the desktop to invalidate access everywhere.
+Re-pair after changing the desktop's Tailscale IP, sharing port or server
+identity. Up to 32 devices may be paired.
 
 Sharing and device trust persist across session-server restarts. If Tailscale is
 not ready when the server starts, the sharing controls report the bind error;

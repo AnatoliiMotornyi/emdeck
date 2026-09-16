@@ -6,6 +6,9 @@ this repository.
 
 - Use Node 22 and Bun 1.3.6. Commit `bun.lock`; do not create another JS
   lockfile.
+- Add user-facing release notes in a unique `.changes/<slug>.md` fragment, not
+  the shared `CHANGELOG.md`. Only release preparation updates the changelog; see
+  `.changes/README.md` and `docs/RELEASE.md`.
 - Keep repository branches limited to `main` and `dev`. Develop on `dev` and
   promote to `main` through the required checks and independent review. Publish
   changes through a fork PR targeting `dev`; direct pushes to either protected

@@ -185,20 +185,6 @@
   min-height: 34px;
   height: auto;
 }
-.session-machines {
-  scrollbar-color: transparent transparent;
-}
-.session-machines:hover,
-.session-machines:focus-within {
-  scrollbar-color: var(--border) transparent;
-}
-.session-machines::-webkit-scrollbar-thumb {
-  background: transparent;
-}
-.session-machines:hover::-webkit-scrollbar-thumb,
-.session-machines:focus-within::-webkit-scrollbar-thumb {
-  background: var(--border);
-}
 .terminal-view-server .terminal-view-select {
   width: 155px;
 }

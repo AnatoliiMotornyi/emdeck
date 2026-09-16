@@ -14,6 +14,17 @@ Open a project, edit a few files, and keep your terminal agents in view. Emdeck
 does not build a project index, run language servers, lint in the background, or
 start agents merely because a project was opened.
 
+Opening a folder that is already open brings its existing window forward and
+preserves its edits and terminals. Different folders open in separate windows.
+See [project windows](PROJECT-WINDOWS.md) for launching a specific folder and
+the single-instance behavior in the next build.
+
+In **Workspaces**, use the sidebar collapse button to keep a narrow strip of
+session tiles beside your terminals. Status colors and icons remain visible;
+hover for full job details or click a tile to focus its terminal. The attention
+filter, launch button and machine controls remain available. Emdeck remembers
+the collapsed view. Expanding restores the sidebar and its search text.
+
 The unreleased **Background sessions** view uses Emdeck's own optional headless
 server to keep local and remote terminal agents running after the IDE closes.
 See [setup, automation and current limits](PERSISTENT-AGENTS.md).
@@ -50,18 +61,18 @@ access. The actual desktop app starts with an Open Project screen.
 
 ## What is implemented
 
-| Area            | Features                                                                                                                                                                                                                                                                                                                                                               |
-| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Windows         | Reopen last project on startup, independent project windows, new-window opening by default when a project is already open, explicit replacement, per-window filesystem and terminal ownership                                                                                                                                                                          |
-| Files           | Open folders, lazy directory expansion, hidden files, loaded-file filter, quick open, create, rename, copy/paste, copy relative/absolute paths, reveal in system file manager, move to system trash                                                                                                                                                                    |
-| Editor          | Tabs, dirty indicators, per-tab undo, syntax highlighting for JS/TS/JSX/TSX, JSON, CSS, HTML, Markdown, Python and Rust, find/replace, folding, line numbers, wrap, font size, LF/CRLF preservation                                                                                                                                                                    |
-| Markdown        | Formatted Preview, Edit and live Split views, headings, tables, checklists, code blocks, project images, heading anchors and relative document links                                                                                                                                                                                                                   |
-| Agent terminals | Real PTYs (ConPTY on Windows), default shell, Codex/Claude/Gemini launch presets, custom agent commands, individual working directories, full-bottom or below-editor placement, side-by-side/stacked/grid layouts, maximize pane, resize panel, restart exited sessions, up to 12 panes                                                                                |
-| Git             | Separate local/remote branch trees, nested branch folders and search, branch action menus, incoming/outgoing counts, fetch/push/update, tracking/rename, checkout/create/safe delete, merge/rebase and recovery, staged and working changes, per-file staging/unstaging, commits, recent history, closable diff tabs, conflict marker resolution with ours/theirs/both |
-| Worktrees       | Dedicated tab to list worktrees, create from a new or available local branch, choose a local/remote starting branch, open in separate project windows, and safely remove linked worktree folders while keeping their branches                                                                                                                                          |
-| Run commands    | Searchable toolbar picker with Recently used / My commands / Detected scripts, Bun/npm/pnpm/Yarn detection, optional automatic discovery, per-project runner override, custom saved commands and working directories, F5 to launch in a dedicated terminal                                                                                                             |
-| Appearance      | Dark, Light and Graphite themes, custom accent, editor/terminal font sizes, terminal scrollback, sidebar width and terminal layout persistence                                                                                                                                                                                                                         |
-| Platforms       | Windows, macOS and Linux implementations and CI workflows; see validation notes below                                                                                                                                                                                                                                                                                  |
+| Area            | Features                                                                                                                                                                                                                                                                                                                                                                                             |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Windows         | Reopen last project on startup, independent project windows, new-window opening by default when a project is already open, explicit replacement, per-window filesystem and terminal ownership                                                                                                                                                                                                        |
+| Files           | Open folders, lazy directory expansion, hidden files, loaded-file filter, quick open, create, rename, copy/paste, copy relative/absolute paths, reveal in system file manager, move to system trash                                                                                                                                                                                                  |
+| Editor          | Tabs, dirty indicators, per-tab undo, syntax highlighting for JS/TS/JSX/TSX, JSON, CSS, HTML, Markdown, Python and Rust, find/replace, folding, line numbers, wrap, font size, LF/CRLF preservation                                                                                                                                                                                                  |
+| Markdown        | Formatted Preview, Edit and live Split views, headings, tables, checklists, code blocks, project images, heading anchors and relative document links                                                                                                                                                                                                                                                 |
+| Agent terminals | Real PTYs (ConPTY on Windows), default shell, Codex/Claude/Gemini launch presets, custom agent commands, individual working directories, full-bottom or below-editor placement, side-by-side/stacked/grid layouts, maximize pane, resize panel, restart exited sessions, up to 12 panes                                                                                                              |
+| Git             | Separate local/remote branch trees, nested branch folders and search, branch action menus, incoming/outgoing counts, fetch/push/update, one-click update from `main`, tracking/rename, checkout/create/safe delete, merge/rebase and recovery, staged and working changes, per-file staging/unstaging, commits, recent history, closable diff tabs, conflict marker resolution with ours/theirs/both |
+| Worktrees       | Dedicated tab to list worktrees, create from a new or available local branch, choose a local/remote starting branch, open in separate project windows, and safely remove linked worktree folders while keeping their branches                                                                                                                                                                        |
+| Run commands    | Searchable toolbar picker with Recently used / My commands / Detected scripts, Bun/npm/pnpm/Yarn detection, optional automatic discovery, per-project runner override, custom saved commands and working directories, F5 to launch in a dedicated terminal                                                                                                                                           |
+| Appearance      | Dark, Light and Graphite themes, custom accent, editor/terminal font sizes, terminal scrollback, sidebar width and terminal layout persistence                                                                                                                                                                                                                                                       |
+| Platforms       | Windows, macOS and Linux implementations and CI workflows; see validation notes below                                                                                                                                                                                                                                                                                                                |
 
 Environment files (`.env`, `.env.*`, and `*.env`) have syntax highlighting for
 keys, values, comments, export prefixes and quoted multiline values. The status
@@ -232,12 +243,19 @@ the welcome screen shows the error and lets you choose another project.
    its merge action merges the remote ref into your current branch. Git refuses
    to overwrite an existing local branch. Remote branches reflect your last
    fetch; use **Fetch** to update them. Emdeck does not fetch automatically.
-5. Open **Resolve conflicts…** in Source Control or the branch menu. Select a
+5. The **merge button beside the branch chip** brings the current branch up to
+   date with `main` in one click: it fast-forwards `main` and your own branch
+   from their tracked branches, then merges `main` in. Branches without a
+   tracked branch are simply not refreshed. It appears only on other branches,
+   is refused before anything runs when the working tree is dirty, never
+   stashes, and opens Source Control if the merge conflicts. Repeating it is
+   safe. `master` and `trunk` are used when the project has no `main`.
+6. Open **Resolve conflicts…** in Source Control or the branch menu. Select a
    file, accept Ours/Theirs, or edit the result in the three-pane manual merge
    view. Applying a result stages that file; continuing the operation is
    explicit. Binary files and deletions support whole-side choices. See
    [Merge conflict resolution](MERGE-CONFLICTS.md) for safeguards and limits.
-6. Open the run dropdown in the top bar. **Recently used** shows your latest
+7. Open the run dropdown in the top bar. **Recently used** shows your latest
    launches, **My commands** holds your custom configurations, and **Detected
    scripts** reads the project's package scripts. Click an entry to select it
    for Run/F5, or use its play button to launch immediately. Add/edit/remove

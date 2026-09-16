@@ -78,6 +78,7 @@ test('sharing is explicit, pairing saves no secrets, and revocation leaves sessi
     );
   expect(await calls()).toHaveLength(0);
   await rail.getByRole('button', { name: 'Connect local server', exact: true }).click();
+  await rail.getByText('Machine settings', { exact: true }).click();
   await rail.getByText('Share this computer over Tailscale', { exact: true }).click();
   await expect(rail.getByText('Sharing is off', { exact: true })).toBeVisible();
   await rail.getByLabel('Tailscale IPv4 address').fill('100.80.1.1');
@@ -103,6 +104,7 @@ test('sharing is explicit, pairing saves no secrets, and revocation leaves sessi
   expect(preferences).not.toContain('synthetic-single-use-code');
   const machine = rail.locator('.session-machine').filter({ hasText: 'Office desktop' });
   await machine.getByRole('button', { name: 'Connect', exact: true }).click();
+  await machine.getByText('Machine settings', { exact: true }).click();
   await expect(machine.getByRole('button', { name: 'Disconnect', exact: true })).toBeVisible();
   await expect(machine.getByText('Share this computer over Tailscale')).toHaveCount(0);
   await rail.getByRole('button', { name: 'Refresh paired devices' }).click();

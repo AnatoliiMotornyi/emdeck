@@ -87,8 +87,18 @@ export function useProjectActions({
         path = picked;
       }
       if (target === 'new' || (target === 'auto' && latest.current.project)) {
-        await api.openWindow(path);
-        notify('Project opened in a new Emdeck window.');
+        const result = await api.openWindow(path);
+        notify(
+          result.reused
+            ? 'Showing the existing project window.'
+            : 'Project opened in a new Emdeck window.'
+        );
+        return;
+      }
+      // Native path identity includes aliases and filesystem case rules. Check
+      // before asking to discard anything in this window.
+      if (native && latest.current.project && (await api.focusProject(path))) {
+        notify('Showing the existing project window.');
         return;
       }
       if (
@@ -100,7 +110,13 @@ export function useProjectActions({
         ))
       )
         return;
-      const p = await api.open(path);
+      const result = await api.open(path);
+      // Another window may claim the folder while the confirmation is open.
+      if (result.kind === 'focused') {
+        notify('Showing the existing project window.');
+        return;
+      }
+      const p = result.project;
       latest.current.project = p;
       latest.current.files = [];
       latest.current.expanded = new Set();

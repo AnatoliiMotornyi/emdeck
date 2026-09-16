@@ -150,6 +150,7 @@ export default function TerminalPane({
     element.addEventListener('wheel', fitter.cancel, { capture: true, passive: true });
     element.addEventListener('pointerdown', fitter.cancel, true);
     element.addEventListener('keydown', fitter.cancel, true);
+    element.addEventListener('touchstart', fitter.cancel, { capture: true, passive: true });
     const publishObservation = (next: AgentObservation) => {
       const key = JSON.stringify([next.activity, next.contextPercent, next.model]);
       if (key !== observationKey) {
@@ -295,6 +296,7 @@ export default function TerminalPane({
       element.removeEventListener('wheel', fitter.cancel, true);
       element.removeEventListener('pointerdown', fitter.cancel, true);
       element.removeEventListener('keydown', fitter.cancel, true);
+      element.removeEventListener('touchstart', fitter.cancel, true);
       input.dispose();
       detachAttachments();
       title.dispose();
