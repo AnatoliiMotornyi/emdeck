@@ -3,6 +3,7 @@ import {
   mergeSettings,
   parseProjectConfig,
   serialiseProjectConfig,
+  withGlobalChange,
   withOverride,
   withoutOverride,
 } from '../../src/features/settings/services/projectConfig';
@@ -43,6 +44,23 @@ describe('editing the override set', () => {
   });
   it('drops undefined rather than storing it, so absence stays meaningful', () => {
     expect(withOverride({ accent: '#e8dd7a' }, { accent: undefined })).toEqual({});
+  });
+});
+
+describe('editing the global layer', () => {
+  it('applies a change over the previous global settings', () => {
+    expect(withGlobalChange(defaults, { accent: '#e8dd7a' })).toEqual({
+      ...defaults,
+      accent: '#e8dd7a',
+    });
+  });
+  it('never stores undefined, so the global layer stays complete', () => {
+    const next = withGlobalChange(defaults, { accent: undefined });
+    expect(next).toEqual(defaults);
+    expect('accent' in next && next.accent).toBe(defaults.accent);
+  });
+  it('keeps a change to reopenLastProject, which no project may override', () => {
+    expect(withGlobalChange(defaults, { reopenLastProject: false }).reopenLastProject).toBe(false);
   });
 });
 

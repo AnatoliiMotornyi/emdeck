@@ -4,6 +4,7 @@ import { useRunConfigurations } from '../../features/runs/hooks/useRunConfigurat
 import { loadSettings } from '../../features/settings/lib/settings';
 import {
   mergeSettings,
+  withGlobalChange,
   withOverride,
   withoutOverride,
 } from '../../features/settings/services/projectConfig';
@@ -21,6 +22,7 @@ import type {
   Pane,
   PaneState,
   Project,
+  Settings,
 } from '../../shared/contracts/workspace';
 import { useLatest } from '../../shared/hooks/useLatest';
 import { useProjectConfig } from './useProjectConfig';
@@ -47,7 +49,14 @@ export function useWorkspaceState() {
     (e: unknown) => notify(String(e).replace(/^Error: /, ''), true),
     [notify]
   );
-  const [globalSettings, setGlobalSettings] = useState(loadSettings);
+  const [globalSettings, storeGlobalSettings] = useState(loadSettings);
+  // The only way into the global layer, and it takes a change rather than a
+  // whole object so a merged value cannot be handed to it wholesale.
+  const setGlobalSettings = useCallback(
+    (change: Partial<Settings>) =>
+      storeGlobalSettings(previous => withGlobalChange(previous, change)),
+    []
+  );
   const config = useProjectConfig(project, fail);
   // Memoised so the merged value keeps a stable identity between renders: the
   // editor and terminals reconfigure themselves when it changes.
@@ -61,9 +70,9 @@ export function useWorkspaceState() {
     (change: SettingsOverrides, scope: 'project' | 'global' = 'project') => {
       if (scope === 'project' && projectScopeAvailable)
         config.setOverrides(previous => withOverride(previous, change));
-      else setGlobalSettings(previous => ({ ...previous, ...change }));
+      else setGlobalSettings(change);
     },
-    [config, projectScopeAvailable]
+    [config, projectScopeAvailable, setGlobalSettings]
   );
   const resetOverride = useCallback(
     (key: keyof SettingsOverrides) =>

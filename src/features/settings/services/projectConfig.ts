@@ -96,6 +96,18 @@ export const mergeSettings = (global: Settings, overrides: SettingsOverrides): S
   reopenLastProject: global.reopenLastProject,
 });
 
+/**
+ * The global layer has no sparse form — every key is always present — so an
+ * `undefined` value is dropped rather than stored, exactly as `withOverride`
+ * drops it from an override set. Neither layer ever holds an `undefined` value.
+ */
+export const withGlobalChange = (global: Settings, change: Partial<Settings>): Settings => {
+  const defined: Partial<Settings> = { ...change };
+  for (const key of Object.keys(defined) as (keyof Settings)[])
+    if (defined[key] === undefined) delete defined[key];
+  return { ...global, ...defined };
+};
+
 /** Assigning `undefined` clears the key, so absence keeps meaning "inherit". */
 export const withOverride = (
   overrides: SettingsOverrides,
