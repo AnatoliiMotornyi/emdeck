@@ -92,6 +92,16 @@ test('background view attaches existing agents, preserves terminals and separate
   await page.getByRole('button', { name: 'Connect local server', exact: true }).click();
   const rail = page.getByRole('complementary', { name: 'Background machines and agents' });
   await expect(rail).toContainText('Permission request');
+  const details = page.getByRole('checkbox', { name: 'Show details' });
+  await expect(details).toBeVisible();
+  // Chromium centres a baseline-aligned checkbox anyway; only WebKitGTK shows the drift,
+  // so assert the rule that removes the engine's say rather than the resulting geometry.
+  expect(
+    await details.evaluate(input => {
+      const label = getComputedStyle(input.closest('label')!);
+      return [label.display, label.alignItems];
+    })
+  ).toEqual(['flex', 'center']);
   await rail.getByRole('button', { name: /Fix remote login/ }).click();
   const terminal = page.locator('.session-terminal');
   await expect(terminal).toHaveAccessibleName('Fix remote login persistent terminal');
