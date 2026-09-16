@@ -381,10 +381,8 @@
 }
 
 .markdown-body input[type="checkbox"] {
-  width: 13px;
-  height: 13px;
+  --checkbox-size: 13px;
   margin-right: 8px;
-  accent-color: var(--accent);
   vertical-align: middle;
 }
 
