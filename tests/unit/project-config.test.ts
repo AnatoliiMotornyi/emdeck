@@ -137,6 +137,12 @@ describe('migrating run preferences into the project folder', () => {
     };
     expect(migrateStoredRuns(stored, preferences, []).selected).toBe('build');
   });
+  it('seeds custom commands from the legacy run list when neither newer source exists', () => {
+    const legacy = [{ id: 'custom:lint', name: 'Lint', command: 'bun run lint', cwd: '' }];
+    expect(migrateStoredRuns(undefined, undefined, legacy).custom).toEqual([
+      { ...legacy[0], source: 'custom' },
+    ]);
+  });
   it('falls back to empty preferences when no source is usable', () => {
     expect(migrateStoredRuns(undefined, null, []).selected).toBe('');
     expect(migrateStoredRuns(undefined, null, []).runner).toBe('auto');

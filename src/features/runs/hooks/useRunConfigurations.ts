@@ -30,6 +30,10 @@ export function useRunConfigurations(
   // below writes `prefs` back into it on every change, and `migrateStoredRuns`
   // always returns a fresh object, so a value dependency here would ping-pong
   // the two effects forever instead of settling after the project loads.
+  // The invariant that makes the ref safe: `runs` only ever changes because of
+  // the write below, so re-reading on `root`/`ready` alone sees every value that
+  // matters. Give `config.runs` an external writer or a file watcher and this
+  // must depend on the value again, with the identity churn solved another way.
   const latestRuns = useLatest(runs);
   useEffect(() => {
     if (!root || !ready) return;

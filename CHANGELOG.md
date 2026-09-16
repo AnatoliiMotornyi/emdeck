@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Project settings are stored in a gitignored `.emdeck/` folder, so each project
+  keeps its own accent, theme, layout and run configurations across restarts.
+  Settings you have not overridden still follow your global defaults.
 - Keep the historical terminal line being read visible when panes resize, while
   continuing to follow output at the bottom. User scrolling takes precedence
   over pending layout restoration in ordinary and background terminals.
