@@ -14,6 +14,17 @@ Open a project, edit a few files, and keep your terminal agents in view. Emdeck
 does not build a project index, run language servers, lint in the background, or
 start agents merely because a project was opened.
 
+Opening a folder that is already open brings its existing window forward and
+preserves its edits and terminals. Different folders open in separate windows.
+See [project windows](PROJECT-WINDOWS.md) for launching a specific folder and
+the single-instance behavior in the next build.
+
+In **Workspaces**, use the sidebar collapse button to keep a narrow strip of
+session tiles beside your terminals. Status colors and icons remain visible;
+hover for full job details or click a tile to focus its terminal. The attention
+filter, launch button and machine controls remain available. Emdeck remembers
+the collapsed view. Expanding restores the sidebar and its search text.
+
 The unreleased **Background sessions** view uses Emdeck's own optional headless
 server to keep local and remote terminal agents running after the IDE closes.
 See [setup, automation and current limits](PERSISTENT-AGENTS.md).
@@ -63,6 +74,11 @@ access. The actual desktop app starts with an Open Project screen.
 | Appearance      | Dark, Light and Graphite themes, custom accent, editor/terminal font sizes, terminal scrollback, sidebar width and terminal layout persistence                                                                                                                                                                                                                         |
 | Platforms       | Windows, macOS and Linux implementations and CI workflows; see validation notes below                                                                                                                                                                                                                                                                                  |
 
+Environment files (`.env`, `.env.*`, and `*.env`) have syntax highlighting for
+keys, values, comments, export prefixes and quoted multiline values. The status
+bar identifies them as **Dotenv**. Highlighting uses only the open buffer and
+works in every theme.
+
 Terminals use CLIs you have already installed and authenticated. Emdeck does not
 bundle agents or require its own AI account. Run configurations execute through
 the configured shell and are never launched merely by opening a project.
@@ -100,8 +116,15 @@ newline shortcut with no terminal setup; see its
 
 The terminal toolbar also offers an optional **Workspaces** view: spaces grouped
 by working folder or remote connection, session tabs, and attention filtering.
-Use the monitor button to configure cmux TUI, tmux, SSH commands, or provider
-session links. Connections are always explicit. See
+Session rows use amber for **Needs approval**, purple for **Waiting for
+answer**, blue for **Working** or recent **Output**, green for **Ready**, red
+for **Error**, and neutral colors for connection and lifecycle states. A
+selected row keeps its activity color in the title, outline and tinted
+background, including keyboard focus. Icons and text identify each state
+alongside the color. The **Needs attention** count and filter include both
+approvals and questions; click a row to open its terminal and respond. Use the
+monitor button to configure cmux TUI, tmux, SSH commands, or provider session
+links. Connections are always explicit. See
 [Terminal workspaces and remote sessions](REMOTE-SESSIONS.md) for setup,
 disconnect behavior, and which integrations run inside Emdeck or in a browser.
 
@@ -148,14 +171,39 @@ are configurable. These preferences persist across projects and restarts.
   Unsupported metrics say **Not reported**; missing quotas are never treated as
   zero usage.
 
-Agent activity is a heuristic observation of the live terminal's bottom rows,
-with detected labels and explanatory tooltips. Approval prompts with
-confirmation choices are highlighted for attention; terminal output alone does
-not prove an agent is working. Readings show their source and time; expired
-quota windows ask for refresh. Only allowlisted Claude metrics are retained in a
-temporary per-session file, removed when the terminal reader exits. No
-transcripts or credentials are copied into the overview. Browser preview
-sessions remain explicitly marked as previews.
+Agent activity is an observation of the live terminal screen, with detected
+labels and explanatory tooltips. It recognizes working indicators above the
+input box, including changing spinner labels and wrapped controls. Submitting a
+task clears the previous Ready status immediately; pauses in output do not mean
+a task has finished. Claude's new completion row, including **Worked for … ·
+done …**, establishes **Ready** even if background shells are still running or
+you have an unsent draft. An old completion row cannot finish a newly submitted
+task. An ambiguous input box shows **Activity unknown**, rather than promising
+the agent is idle. Approval prompts with confirmation choices are highlighted
+for attention. Recognizable question pickers and direct English questions
+immediately before an empty input prompt can show **Waiting for answer**. This
+is an estimate from terminal text, so unfamiliar layouts, completion messages
+and other languages can be missed. SSH rows show connection status only.
+Terminal output alone does not prove an agent is working. Readings show their
+source and time; expired quota windows ask for refresh. Only allowlisted Claude
+metrics are retained in a temporary per-session file, removed when the terminal
+reader exits. No transcripts or credentials are copied into the overview.
+Browser preview sessions remain explicitly marked as previews.
+
+Codex workspace terminals also read the default **activity** title indicator.
+They stay **Working** while the answer streams, even when Codex hides its
+working row, and return to **Ready** when Codex removes that indicator from the
+same title. Codex question forms (including freeform and multiple questions)
+show **Waiting for answer**; command, edit and permission confirmations show
+**Needs approval**. Dimmed prompt suggestions are recognized separately from
+typed text. Emdeck does not change Codex settings or install hooks for this
+integration. If a custom title disables activity, animations are disabled, or an
+older Codex version does not emit these updates, screen detection remains
+available. In that case a running session needs a recognized final completion
+footer to return to Ready; the divider before a streaming answer and silence are
+not completion. These improvements apply to desktop workspace terminals;
+Background sessions and SSH panes retain their separately documented reporting
+capabilities.
 
 ## Everyday workflow
 
@@ -204,6 +252,28 @@ the welcome screen shows the error and lets you choose another project.
    for Run/F5, or use its play button to launch immediately. Add/edit/remove
    custom commands and copy a detected script into a custom command from the
    same picker. F5 also works with a terminal focused.
+
+## Discarding file changes
+
+In **Source Control**, use the undo-arrow button beside a tracked file or
+**Discard all changes…**. Review the confirmation, then choose **Discard
+changes**. Both staged and unstaged edits are discarded: existing files return
+to the last commit, deleted files are restored, and renames are undone. Added
+files and new rename destinations marked **Remove** are deleted from disk.
+Before the first commit, discarding a staged addition also deletes that file.
+
+Untracked files, including ignored files, are kept. If a new untracked file
+occupies a path Git would restore, move it first. Save or close unsaved editor
+tabs for affected files before discarding. Emdeck checks the reviewed files and
+Git state again before applying; if they changed, review a fresh confirmation.
+Changes discarded this way cannot be undone through Git. Open editors and diff
+tabs refresh after the operation.
+
+Finish or abort any merge/rebase first. Linked files, submodules and sparse
+checkouts require Git in a terminal. Discard applies to the current checkout,
+including when it is a linked worktree; it does not move branches or create a
+commit. See [Git restore](https://git-scm.com/docs/git-restore) for the
+underlying restore behavior.
 
 ## Git worktrees
 
@@ -350,7 +420,7 @@ the terminal itself.
 - Only open files are parsed for syntax highlighting. There are no language
   servers, type checkers, completion engines, or project-wide analyzers.
 - Editor languages and terminal UI are loaded on demand. Agent observations are
-  coalesced on terminal output and inspect at most 28 live rows. No
+  coalesced on terminal output and inspect at most 256 live physical rows. No
   project/transcript scanning is added. Visible session durations/reset labels
   update every 15 seconds; account quota polling is opt-in and pauses when the
   overview is hidden.

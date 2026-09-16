@@ -1,9 +1,35 @@
 use crate::services::workspace::{err, Result};
 use crate::{
-    services::{git, git_branches, git_conflicts, worktrees},
+    services::{git, git_branches, git_conflicts, git_discard, worktrees},
     state::Projects,
 };
 use tauri::{Manager, State};
+
+#[tauri::command]
+pub(crate) async fn git_discard_preview(
+    window: tauri::Window,
+    root: String,
+    paths: Vec<String>,
+    projects: State<'_, Projects>,
+) -> Result<git_discard::Plan> {
+    let root = projects.root(window.label(), &root)?;
+    tauri::async_runtime::spawn_blocking(move || git_discard::preview(&root, &paths))
+        .await
+        .map_err(err)?
+}
+
+#[tauri::command]
+pub(crate) async fn git_discard_apply(
+    window: tauri::Window,
+    root: String,
+    request: git_discard::Request,
+    projects: State<'_, Projects>,
+) -> Result<()> {
+    let root = projects.root(window.label(), &root)?;
+    tauri::async_runtime::spawn_blocking(move || git_discard::apply(&root, &request))
+        .await
+        .map_err(err)?
+}
 #[tauri::command]
 pub(crate) async fn git_conflict(
     window: tauri::Window,

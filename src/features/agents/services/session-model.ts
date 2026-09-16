@@ -18,19 +18,37 @@ export const restoreMachines = (value: unknown): MachineProfile[] => {
       found.some(p => p.id === profile.id)
     )
       continue;
-    if (profile.target.kind === 'local') {
+    const { kind, port, credential } = profile.target;
+    if (profile.id === 'local' && kind !== 'local') continue;
+    if (kind === 'local') {
       if (profile.id === 'local')
         found.push({ ...localMachine, enabled: profile.enabled === true });
     } else if (
-      profile.target.kind === 'ssh' &&
+      kind === 'ssh' &&
       typeof profile.target.host === 'string' &&
       typeof profile.target.binary === 'string' &&
-      (profile.target.port === null || Number.isInteger(profile.target.port))
+      (port === null || Number.isInteger(port))
     )
       found.push({
         id: profile.id,
         name: profile.name.slice(0, 120),
-        target: profile.target,
+        target: {
+          kind: 'ssh',
+          host: profile.target.host,
+          port,
+          binary: profile.target.binary,
+        },
+        enabled: profile.enabled === true,
+      });
+    else if (
+      kind === 'direct' &&
+      typeof credential === 'string' &&
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(credential)
+    )
+      found.push({
+        id: profile.id,
+        name: profile.name.slice(0, 120),
+        target: { kind: 'direct', credential },
         enabled: profile.enabled === true,
       });
   }

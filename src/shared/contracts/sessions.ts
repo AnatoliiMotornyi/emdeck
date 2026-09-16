@@ -1,6 +1,23 @@
 export type SessionState = 'working' | 'blocked' | 'idle' | 'done' | 'unknown' | 'stopped';
 export type MachineTarget =
-  { kind: 'local' } | { kind: 'ssh'; host: string; port: number | null; binary: string };
+  | { kind: 'local' }
+  | { kind: 'ssh'; host: string; port: number | null; binary: string }
+  | { kind: 'direct'; credential: string };
+export type RemoteManagement =
+  | { operation: 'status' | 'disable' | 'invite' }
+  | { operation: 'enable'; address: string; port: number }
+  | { operation: 'revoke'; id: string };
+export interface RemoteSharingStatus {
+  enabled: boolean;
+  address: string | null;
+  port: number | null;
+  error: string | null;
+  devices: { id: string; name: string; pairedAt: number }[];
+}
+export interface PairingCode {
+  code: string;
+  expiresAt: number;
+}
 export interface MachineProfile {
   id: string;
   name: string;
@@ -54,6 +71,7 @@ export interface SessionRead {
   pane: SessionPane;
 }
 export interface SessionMethods {
+  'remote.manage': { params: RemoteManagement; result: RemoteSharingStatus | PairingCode };
   ping: { params: undefined; result: { protocol: number; serverId: string } };
   'session.snapshot': {
     params: { after: number | null; wait_ms: number };

@@ -1,0 +1,169 @@
+.session-layout-toolbar {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 34px;
+  padding: 4px 9px;
+  border-bottom: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 10px;
+}
+.session-layout-toolbar small {
+  margin-left: auto;
+  font-size: 10px;
+}
+.session-canvas-viewport {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  padding: 5px;
+}
+.session-canvas {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+.session-canvas > .terminal-empty {
+  height: 100%;
+}
+.session-canvas-pane {
+  position: absolute;
+}
+.session-canvas[data-dragging="true"] * {
+  cursor: grabbing;
+  user-select: none;
+}
+.session-canvas-pane > .session-disconnected {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: auto;
+}
+.session-terminal .pane-header .session-drag-handle,
+.session-disconnected .session-drag-handle {
+  display: inline-flex;
+  padding: 3px;
+  flex-shrink: 0;
+  color: var(--muted);
+  cursor: grab;
+  touch-action: none;
+}
+.session-drag-handle:active {
+  cursor: grabbing;
+}
+.session-drag-handle:focus-visible,
+.session-layout-toolbar button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+.session-divider {
+  position: absolute;
+  z-index: 3;
+  touch-action: none;
+  border-radius: 3px;
+}
+.session-divider-columns {
+  cursor: col-resize;
+}
+.session-divider-rows {
+  cursor: row-resize;
+}
+.session-divider:hover,
+.session-divider:focus-visible,
+.session-divider:active {
+  background: var(--accent);
+  outline: none;
+}
+.session-drop-preview {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  border: 2px solid var(--accent);
+  border-radius: 6px;
+}
+.session-drop-preview span {
+  background: var(--panel);
+  color: var(--text);
+  padding: 6px 10px;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  font-size: 11px;
+}
+.session-drop-left {
+  right: 50%;
+}
+.session-drop-right {
+  left: 50%;
+}
+.session-drop-top {
+  bottom: 50%;
+}
+.session-drop-bottom {
+  top: 50%;
+}
+.session-drop-swap {
+  inset: 20%;
+}
+.session-layout-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* One stable canvas owns both kinds of terminal across all three views. */
+.terminal-grid-viewport {
+  display: flex;
+  padding: 0;
+  overflow: hidden;
+}
+.session-canvas.terminal-grid {
+  width: auto;
+  height: auto;
+}
+.workspace-machines {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex-shrink: 0;
+}
+.workspace-machines .session-machines {
+  height: 100%;
+  max-width: none;
+}
+.workspace-back,
+.rail-background-manage {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 12px;
+  color: var(--accent-ink);
+  font-size: 11px;
+}
+.workspace-back {
+  border-bottom: 1px solid var(--border);
+}
+
+.session-terminal .pane-header button {
+  color: var(--accent-ink);
+}
+:root[data-theme="light"] .session-terminal .session-state.working {
+  color: #235faa;
+}
+:root[data-theme="light"] .session-terminal .session-state.blocked {
+  color: #815005;
+}
+:root[data-theme="light"] .session-terminal .session-state.idle,
+:root[data-theme="light"] .session-terminal .session-state.done {
+  color: #256b3b;
+}

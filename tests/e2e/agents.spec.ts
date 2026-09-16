@@ -22,7 +22,7 @@ test.beforeEach(async ({ page }) => {
           case 'startup_project':
             return '/projects/agents';
           case 'open_project':
-            return { root: args.path, name: 'agents' };
+            return { kind: 'opened', project: { root: args.path, name: 'agents' } };
           case 'read_directory':
             return [];
           case 'read_file':

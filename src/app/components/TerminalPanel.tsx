@@ -11,61 +11,14 @@ import {
   Rows2,
   TerminalSquare,
 } from 'lucide-react';
-import { lazy, Suspense, useId, useRef, useState } from 'react';
-import AgentPanel from '../../features/agents/components/AgentPanel';
+import { useId, useRef } from 'react';
 import RemoteConnections from '../../features/agents/components/RemoteConnections';
-import SessionRail from '../../features/agents/components/SessionRail';
-import { useTerminalWorkspace } from '../../features/agents/hooks/useTerminalWorkspace';
 import type { RemoteProfile, TerminalView } from '../../shared/contracts/remote';
-import type { WorkspaceController } from '../hooks/useWorkspace';
+import type { TerminalPanelModel } from './terminal-panel-model';
+import { useTerminalSessions } from '../hooks/useTerminalSessions';
+import TerminalContent from './TerminalContent';
 import TerminalLaunchMenu from './TerminalLaunchMenu';
-import { paneName } from '../../features/agents/services/terminal-title';
-const TerminalPane = lazy(() => import('../../features/agents/components/TerminalPane'));
-const SessionDesk = lazy(() => import('../../features/agents/components/SessionDesk'));
-type Props = {
-  model: Pick<
-    WorkspaceController,
-    | 'terminalVisible'
-    | 'terminalFull'
-    | 'resize'
-    | 'resizeKey'
-    | 'setTerminalHeight'
-    | 'terminalPanel'
-    | 'panes'
-    | 'agentPreferences'
-    | 'setAgentPreferences'
-    | 'layout'
-    | 'setLayout'
-    | 'setMaxPane'
-    | 'settings'
-    | 'setSettings'
-    | 'project'
-    | 'setAgentMenu'
-    | 'agentMenu'
-    | 'addPane'
-    | 'customPane'
-    | 'setTerminalFull'
-    | 'setTerminalVisible'
-    | 'paneStates'
-    | 'agentObservations'
-    | 'agentUsage'
-    | 'selectedPane'
-    | 'focusAgent'
-    | 'renameAgent'
-    | 'restartAgent'
-    | 'closePane'
-    | 'maxPane'
-    | 'paneState'
-    | 'fail'
-    | 'observeAgent'
-    | 'updateAgentUsage'
-    | 'runAgentCommand'
-    | 'updateTerminalTitle'
-    | 'paneFocus'
-    | 'setSelectedPane'
-    | 'git'
-  >;
-};
+type Props = { model: TerminalPanelModel };
 export default function TerminalPanel({ model }: Props) {
   const launchTrigger = useRef<HTMLButtonElement>(null);
   const launchMenuId = useId();
@@ -90,12 +43,6 @@ export default function TerminalPanel({ model }: Props) {
   const handleClick = () => void customPane();
   const handleTerminalFullClick = () => setTerminalFull(f => !f);
   const handleHideTerminalsSessionsKeepClick = () => setTerminalVisible(false);
-  const handleRename: React.ComponentProps<typeof AgentPanel>['onRename'] = pane =>
-    void renameAgent(pane);
-  const handleClose: React.ComponentProps<typeof AgentPanel>['onClose'] = pane =>
-    void closePane(pane);
-  const handleAgentMenuLaunch = () => setAgentMenu(true);
-  const handleClick2 = () => addPane('Terminal');
   const {
     terminalVisible,
     terminalFull,
@@ -108,7 +55,6 @@ export default function TerminalPanel({ model }: Props) {
     setAgentPreferences,
     layout,
     setLayout,
-    setMaxPane,
     settings,
     setSettings,
     project,
@@ -118,47 +64,14 @@ export default function TerminalPanel({ model }: Props) {
     customPane,
     setTerminalFull,
     setTerminalVisible,
-    paneStates,
-    agentObservations,
-    agentUsage,
-    selectedPane,
-    focusAgent,
-    renameAgent,
-    restartAgent,
-    closePane,
-    maxPane,
-    paneState,
-    fail,
-    observeAgent,
-    updateAgentUsage,
-    runAgentCommand,
-    updateTerminalTitle,
-    paneFocus,
-    setSelectedPane,
-    git,
   } = model;
-  const clearMaximized = () => setMaxPane(null);
-  const workspace = useTerminalWorkspace({
-    panes,
-    projectName: project?.name ?? 'No project',
-    addPane,
-    focus: focusAgent,
-    clearMaximized,
-    fail,
-  });
-  const [serverLoaded, setServerLoaded] = useState(workspace.view === 'server');
+  const workspace = useTerminalSessions(model);
   const handleViewChange: React.ChangeEventHandler<HTMLSelectElement> = event => {
-    if (event.target.value === 'server') setServerLoaded(true);
     workspace.setView(event.target.value as TerminalView);
   };
   const handleConnections = () => workspace.setConnectionsOpen(true);
   const handleConnectionsClose = () => workspace.setConnectionsOpen(false);
   const handleConnect = (profile: RemoteProfile) => void workspace.connect(profile);
-  const handleAgentCommand: React.ComponentProps<typeof TerminalPane>['onCommand'] = (
-    id,
-    command
-  ) => void runAgentCommand(command, panes.find(pane => pane.id === id)?.cwd ?? '').catch(fail);
-  const visibleIds = new Set(workspace.visiblePanes.map(pane => pane.id));
   return (
     <>
       <div
@@ -184,7 +97,12 @@ export default function TerminalPanel({ model }: Props) {
           <div className='terminal-heading'>
             <TerminalSquare size={14} />
             <strong>TERMINALS</strong>
-            {workspace.view !== 'server' && <span className='count-badge'>{panes.length}</span>}
+            {workspace.view !== 'server' && (
+              <span className='count-badge'>
+                {panes.length +
+                  (workspace.view === 'workspaces' ? workspace.background.tiles.length : 0)}
+              </span>
+            )}
           </div>
           <span className='terminal-subtitle'>A place for every agent.</span>
           <div className='spacer' />
@@ -209,30 +127,32 @@ export default function TerminalPanel({ model }: Props) {
           >
             <Bot size={15} />
           </button>
-          <div className='layout-controls'>
-            {(
-              [
-                ['columns', Columns2, 'Side by side'],
-                ['rows', Rows2, 'Stacked'],
-                ['grid', Grid2X2, 'Grid'],
-              ] as const
-            ).map(([value, Icon, title]) => {
-              const handleLayoutClick = () => {
-                setLayout(value);
-                setMaxPane(null);
-              };
-              return (
-                <button
-                  key={value}
-                  className={`icon-button ${layout === value ? 'selected' : ''}`}
-                  title={title}
-                  onClick={handleLayoutClick}
-                >
-                  <Icon size={14} />
-                </button>
-              );
-            })}
-          </div>
+          {workspace.view !== 'server' && (
+            <div className='layout-controls'>
+              {(
+                [
+                  ['columns', Columns2, 'Side by side'],
+                  ['rows', Rows2, 'Stacked'],
+                  ['grid', Grid2X2, 'Grid'],
+                ] as const
+              ).map(([value, Icon, title]) => {
+                const handleLayoutClick = () => {
+                  setLayout(value);
+                  workspace.clearMaximized();
+                };
+                return (
+                  <button
+                    key={value}
+                    className={`icon-button ${layout === value ? 'selected' : ''}`}
+                    title={title}
+                    onClick={handleLayoutClick}
+                  >
+                    <Icon size={14} />
+                  </button>
+                );
+              })}
+            </div>
+          )}
           <span className='toolbar-separator' />
           <button
             className={`icon-button ${settings.terminalPlacement === 'workspace' ? 'selected' : ''}`}
@@ -284,144 +204,7 @@ export default function TerminalPanel({ model }: Props) {
             <ChevronDown size={15} />
           </button>
         </header>
-        {serverLoaded && (
-          <Suspense fallback={<div className='loading'>Loading sessions…</div>}>
-            <SessionDesk
-              active={workspace.view === 'server'}
-              settings={settings}
-              root={project?.root}
-              projectName={project?.name}
-              layout={layout}
-            />
-          </Suspense>
-        )}
-        <div
-          className='terminal-workspace'
-          style={{ display: workspace.view === 'server' ? 'none' : undefined }}
-        >
-          {workspace.view === 'workspaces' && (
-            <SessionRail
-              panes={panes}
-              projectName={project?.name ?? 'No project'}
-              branch={git?.branch}
-              profiles={workspace.profiles}
-              selectedSpace={workspace.activeSpace}
-              selectedPane={selectedPane}
-              states={paneStates}
-              observations={agentObservations}
-              usage={agentUsage}
-              onSpace={workspace.selectSpace}
-              onPane={workspace.selectPane}
-              onConnect={handleConnect}
-              onConnections={handleConnections}
-              onLaunch={handleAgentMenuLaunch}
-            />
-          )}
-          {project && (
-            <AgentPanel
-              panes={panes}
-              states={paneStates}
-              observations={agentObservations}
-              usage={agentUsage}
-              selected={selectedPane}
-              preferences={{
-                ...agentPreferences,
-                visible: workspace.view === 'panes' && agentPreferences.visible,
-              }}
-              active={terminalVisible && agentPreferences.visible && workspace.view === 'panes'}
-              onPreferences={setAgentPreferences}
-              onFocus={focusAgent}
-              onRename={handleRename}
-              onRestart={restartAgent}
-              onClose={handleClose}
-              onLaunch={handleAgentMenuLaunch}
-            />
-          )}
-          <div className='terminal-canvas'>
-            {workspace.view === 'workspaces' && (
-              <div className='session-tabs' role='toolbar' aria-label='Session tabs'>
-                <button
-                  className={!maxPane ? 'active' : ''}
-                  aria-pressed={!maxPane}
-                  onClick={clearMaximized}
-                >
-                  <Grid2X2 size={13} />
-                  Split view
-                </button>
-                {workspace.visiblePanes.map(pane => {
-                  const handleSelect = () => workspace.selectPane(pane);
-                  return (
-                    <button
-                      key={pane.id}
-                      className={maxPane === pane.id ? 'active' : ''}
-                      aria-pressed={maxPane === pane.id}
-                      onClick={handleSelect}
-                    >
-                      <i style={{ background: pane.color }} />
-                      {paneName(pane)}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-            <div
-              className={`terminal-grid layout-${layout} ${maxPane ? 'has-maximized' : ''}`}
-              style={{ '--pane-count': workspace.visiblePanes.length } as React.CSSProperties}
-            >
-              {panes.length ? (
-                <Suspense fallback={<div className='loading'>Starting terminals…</div>}>
-                  {panes.map(pane => {
-                    const handleMaxPaneMaximize = () =>
-                      setMaxPane(v => (v === pane.id ? null : pane.id));
-                    const handleClose = () => void closePane(pane);
-                    const handleRestart = () => restartAgent(pane);
-                    const handleSelectedPaneFocus = () => setSelectedPane(pane.id);
-                    return (
-                      <div
-                        className={`pane-container ${!visibleIds.has(pane.id) || (maxPane && maxPane !== pane.id) ? 'pane-hidden' : ''}`}
-                        key={pane.id}
-                      >
-                        <TerminalPane
-                          pane={pane}
-                          root={project!.root}
-                          settings={settings}
-                          maximized={maxPane === pane.id}
-                          onMaximize={handleMaxPaneMaximize}
-                          onClose={handleClose}
-                          onRestart={handleRestart}
-                          onState={paneState}
-                          onTitle={updateTerminalTitle}
-                          onError={fail}
-                          onObservation={observeAgent}
-                          onUsage={updateAgentUsage}
-                          onCommand={handleAgentCommand}
-                          enhancedUsage={agentPreferences.claudeUsage}
-                          focusRequest={paneFocus.id === pane.id ? paneFocus.sequence : 0}
-                          selected={selectedPane === pane.id}
-                          onFocus={handleSelectedPaneFocus}
-                        />
-                      </div>
-                    );
-                  })}
-                </Suspense>
-              ) : (
-                <div className='terminal-empty'>
-                  <div className='terminal-empty-icon'>
-                    <TerminalSquare size={24} />
-                  </div>
-                  <div>
-                    <h3>Bring your agents to the table.</h3>
-                    <p>Run Codex, Claude Code, or any CLI in its own terminal.</p>
-                  </div>
-                  <button className='button secondary' disabled={!project} onClick={handleClick2}>
-                    <Plus size={14} />
-                    Start a terminal
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+        <TerminalContent model={model} workspace={workspace} />
       </section>
       {workspace.connectionsOpen && (
         <RemoteConnections

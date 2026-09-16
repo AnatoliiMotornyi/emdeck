@@ -5,7 +5,12 @@ export const dirname = (path: string) =>
 export const join = (parent: string, name: string) => (parent ? `${parent}/${name}` : name);
 export const absolutePath = (root: string, path: string) =>
   `${root.replace(/^\\\\\?\\/, '').replace(/[\\/]$/, '')}${root.includes('\\') ? '\\' : '/'}${path.replace(/\//g, root.includes('\\') ? '\\' : '/')}`;
+export const isDotenv = (path: string): boolean => {
+  const name = basename(path).toLowerCase();
+  return name === '.env' || name.startsWith('.env.') || name.endsWith('.env');
+};
 export function fileKind(path: string) {
+  if (isDotenv(path)) return 'Dotenv';
   const ext = path.split('.').pop()?.toLowerCase();
   return (
     (

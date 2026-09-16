@@ -10,6 +10,7 @@
 @import "./styles/agents.css";
 @import "./styles/terminal-panes.css";
 @import "./styles/terminal-workspaces.css";
+@import "./styles/workspace-sidebar.css";
 @import "./styles/statusbar.css";
 @import "./styles/menus.css";
 @import "./styles/dialogs.css";
@@ -24,3 +25,5 @@
 @import "./styles/conflicts.css";
 @import "./styles/responsive.css";
 @import "./styles/session-server.css";
+@import "./styles/session-layout.css";
+@import "./styles/session-sidebar.css";

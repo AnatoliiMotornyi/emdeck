@@ -194,6 +194,21 @@ test('themes and run presets persist', async ({ page }) => {
   await page.getByTitle('Manage run configurations').click();
   await expect(page.getByRole('button', { name: /Type check npx tsc/ })).toBeVisible();
 });
+test('an accent preset can be chosen from the extended list and persists', async ({ page }) => {
+  const accent = () =>
+    page.evaluate(() => document.documentElement.style.getPropertyValue('--accent'));
+  await page.getByTitle('Settings', { exact: true }).click();
+  await page.getByLabel('More accent colors').selectOption('#6fd8c8');
+  await page.getByRole('button', { name: 'Done', exact: true }).click();
+  await expect.poll(accent).toBe('#6fd8c8');
+  await page.reload();
+  await expect.poll(accent).toBe('#6fd8c8');
+  await page.getByTitle('Settings', { exact: true }).click();
+  await expect(page.getByLabel('More accent colors')).toHaveValue('#6fd8c8');
+  await page.getByRole('button', { name: 'Accent #b8ee86', exact: true }).click();
+  await expect(page.getByLabel('More accent colors')).toHaveValue('');
+  await expect.poll(accent).toBe('#b8ee86');
+});
 test('quick open and source control are reachable', async ({ page }) => {
   await page.keyboard.press('ControlOrMeta+p');
   await page.getByLabel('Search files and actions').fill('README');

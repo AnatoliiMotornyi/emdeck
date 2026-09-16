@@ -1,6 +1,7 @@
 import { conflicts } from '../../features/git/services/conflicts';
 import { useEditorActions } from './useEditorActions';
 import { useConflictActions } from './useConflictActions';
+import { useDiscardActions } from './useDiscardActions';
 import { useExplorerActions } from './useExplorerActions';
 import { useGitActions } from './useGitActions';
 import { useLayoutActions } from './useLayoutActions';
@@ -15,6 +16,7 @@ export function useWorkspace() {
   const workspaceState = useWorkspaceState();
   const workspaceRefresh = useWorkspaceRefresh({ ...workspaceState });
   const conflictActions = useConflictActions({ ...workspaceState, ...workspaceRefresh });
+  const discardActions = useDiscardActions({ ...workspaceState, ...workspaceRefresh });
   const editorActions = useEditorActions({ ...workspaceState, ...workspaceRefresh });
   const projectActions = useProjectActions({
     ...workspaceState,
@@ -72,6 +74,7 @@ export function useWorkspace() {
   ).length;
   const run = runs.selected;
   return {
+    ...discardActions,
     ...conflictActions,
     ...workspaceState,
     ...workspaceRefresh,

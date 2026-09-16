@@ -32,6 +32,41 @@ export interface ConflictPort {
 export interface MergeEditorProps {
   path: string;
   content: string;
-  onChange: (content: string) => void;
+  label: string;
+  readOnly: boolean;
+  highlights: MergeHighlight[];
+  actions?: MergeBlockAction[];
+  resultBlocks?: MergeResultBlock[];
+  reveal?: { position: number; sequence: number };
+  onResolve?: (block: number, choice: MergeBlockChoice, mode?: MergeBlockMode) => void;
+  onChange: (content: string, blocks?: MergeResultBlock[]) => void;
   onSave: () => void;
+}
+
+export type MergeBlockChoice = 'ours' | 'theirs' | 'both';
+export type MergeBlockMode = 'replace' | 'append';
+export interface MergeResultBlock {
+  id: number;
+  from: number;
+  to: number;
+  valid: boolean;
+  ours: string;
+  theirs: string;
+  sourcePositions: { ours: number; theirs: number };
+  accepted: ('ours' | 'theirs')[];
+}
+export interface MergeHighlight {
+  from: number;
+  to: number;
+  kind: 'conflict' | 'ours' | 'theirs' | 'changed';
+  selected?: boolean;
+}
+export interface MergeBlockAction {
+  at: number;
+  block: number;
+  choice: MergeBlockChoice;
+  resolved?: boolean;
+  applied?: boolean;
+  canAppend?: boolean;
+  disabled?: boolean;
 }

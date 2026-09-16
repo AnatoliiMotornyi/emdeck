@@ -77,14 +77,18 @@ export const useSessionMachines = (active: boolean) => {
     }));
   };
   const autoConnected = useRef(false);
+  const [initialized, setInitialized] = useState(false);
   useEffect(() => {
     if (!active || autoConnected.current) return;
     autoConnected.current = true;
-    profiles.filter(p => p.enabled).forEach(p => void connect(p));
+    const saved = restoreMachines(readStored('relay:session-machines', []));
+    setProfiles(saved);
+    setInitialized(true);
+    saved.filter(p => p.enabled).forEach(p => void connect(p));
   }, [active, profiles, connect]);
   useEffect(() => {
-    store('relay:session-machines', profiles);
-  }, [profiles]);
+    if (initialized) store('relay:session-machines', profiles);
+  }, [profiles, initialized]);
   useEffect(() => {
     const tasks = connections.current;
     return () => {
@@ -97,7 +101,10 @@ export const useSessionMachines = (active: boolean) => {
   }, []);
   const save = (profile: MachineProfile) =>
     setProfiles(previous => [...previous.filter(p => p.id !== profile.id), profile]);
-  const remove = (id: string) => {
+  const remove = async (id: string) => {
+    const profile = profiles.find(p => p.id === id);
+    if (profile?.target.kind === 'direct')
+      await call('session_forget', { credential: profile.target.credential });
     disconnect(id);
     setProfiles(previous => previous.filter(p => p.id !== id || p.id === 'local'));
   };

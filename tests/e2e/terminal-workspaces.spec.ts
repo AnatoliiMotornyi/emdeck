@@ -59,7 +59,7 @@ test('optional workspace view preserves terminals, editor state and attention na
   await page.getByLabel('Terminal view').selectOption('workspaces');
   const rail = page.getByRole('complementary', { name: 'Terminal workspaces' });
   await expect(rail).toBeVisible();
-  await expect(rail.getByTitle('Focus Claude', { exact: true })).toContainText('Needs attention');
+  await expect(rail.getByTitle('Focus Claude', { exact: true })).toContainText('Needs approval');
   await rail.getByRole('button', { name: 'Needs attention', exact: true }).click();
   await rail.getByTitle('Focus Claude', { exact: true }).click();
   await expect(page.locator('.xterm[data-continuity="original"]')).toBeVisible();

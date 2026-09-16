@@ -90,15 +90,90 @@ standalone server has no Tauri dependency; Windows' embedded fallback runs from
 a private copy so the IDE remains replaceable while agents work. See
 [persistence and automation](PERSISTENT-AGENTS.md).
 
+The runtime's `remote` module owns optional Tailscale-address binding, TLS,
+single-use pairing, revocable device trust and native client credential files.
+Its authenticated transport forwards bounded requests to the existing local
+engine, namespaces input leases by device, and denies remote sharing management.
+Local capability checks precede all host-management actions. The desktop native
+session service resolves opaque pairing IDs and preserves window ownership;
+React receives public machine metadata only. Sharing is opt-in and cannot alter
+firewall settings or install network software. See
+[direct remote connections](TAILSCALE-SESSIONS.md).
+
 Opening a second project defaults to a new native window. Replacement resets
 that window's views only after the existing confirmation flow. Native project
 roots and terminal groups are keyed by the invoking window, not
 renderer-provided IDs.
 
+Each project folder has one active window. `windows.rs` composes native routing,
+window focus and creation; the filesystem identity service canonicalizes paths
+and compares file identities to handle case differences and folder aliases. A
+routing mutex serializes lookup and creation, reserving the folder before its
+renderer starts. Window destruction releases the reservation. Native window
+events never acquire the routing mutex. Authorization remains scoped to the
+calling window and never grants access when another window owns the folder.
+
+Opening an owned folder shows, restores and focuses its existing window. The
+renderer checks before a replacement confirmation and handles a native focused
+result afterward, preserving drafts and terminals if another window claimed the
+folder during confirmation. Initial renderers still initialize their own
+reserved folder. Tauri's single-instance plugin forwards subsequent launches to
+this same router on a blocking task, avoiding window creation on the native
+event thread. A launch without a folder focuses the most recently focused
+window; `emdeck --project <folder>` or one folder argument opens or focuses that
+folder. Session-server and reporter CLI modes dispatch before the GUI plugin.
+The production app identifier and storage keys are unchanged. Native acceptance
+builds use an explicitly separate test identifier and WebView profile.
+
 Terminal launch inputs are sampled when its identity/restart counter changes.
 Appearance updates reconfigure the existing terminal. Hidden and maximized panes
 remain mounted. CodeMirror samples a document on tab switches and separately
 applies content/theme updates, preserving per-file undo history.
+
+The shared terminal fitter preserves either output following or a marker at the
+historical line being read. Markers track reflow and trimming through rapid
+resizes and are released after restoration, cancellation or disposal.
+Restoration waits for xterm's viewport synchronization and never carries a
+position into a different buffer. Both terminal views cancel pending restoration
+on wheel, pointer, keyboard and touch interaction so user input takes
+precedence.
+
+Background pane layout belongs to the agents feature. Pure tree and geometry
+services handle presets, docking, swapping, minimum sizes and split ratios; the
+view persists a validated layout under `relay:session-layout`. A flat set of
+keyed terminal views receives new rectangles without changing its React parent
+or attachment lifetime. Workspace filters prune only the visible projection.
+Pointer capture handles internal pane dragging independently of native file
+drops. Rearranging panes never mutates server workspaces or starts processes;
+each device remembers its own view arrangement.
+
+`SessionSidebar` owns sidebar visibility, filters and machine-group disclosures;
+`SessionMachineCard` presents sessions and explicit connection controls. Hiding
+the sidebar changes its width and content visibility without unmounting forms or
+the sibling terminal canvas. Machine connections remain owned by
+`useSessionMachines`, independent of sidebar visibility. The additive
+`relay:session-sidebar-collapsed` preference leaves existing session and layout
+keys intact.
+
+`TerminalContent` composes one flat terminal canvas across Panes, Workspaces and
+Background sessions. `useTerminalSessions` coordinates foreground selection with
+`useSessionDesk`, the single owner of background connections and attachments.
+Workspaces lists server sessions by machine and workspace, with explicit attach
+and machine-management actions; the ordinary grid and background split tree
+change presentation without moving a terminal to a different React parent.
+Background layouts and attached-view keys retain their existing storage format.
+The pure background-workspace projection keeps machine-qualified IDs distinct;
+the status presenter uses server evidence and labels disconnected snapshots as
+offline. Merely listing a session does not take an input lease or launch it.
+
+The Workspaces rail remembers its compact mode under the additive
+`relay:workspace-sidebar-collapsed` preference. `SessionRailJob` presents the
+same status model and theme tokens in both sizes. Collapse only changes sidebar
+presentation; it does not touch the sibling terminal canvas or its connections.
+The compact list pauses the hidden text search while retaining the explicit
+attention filter, so an old query cannot conceal a waiting job. Expanded search
+text is restored on expansion. Mini jobs retain status icons, accessible names,
+full hover details and keyboard focus; their list scrolls independently.
 
 Desktop terminals observe xterm's OSC title events and publish bounded plain
 text metadata without changing pane identity or launch inputs. The agents
@@ -158,6 +233,37 @@ in the native window's unsaved-edit check. Open editor buffers are checked
 before reading and applying a resolution; unsaved tabs must be saved or closed.
 Shared modal keyboard handling belongs only to the topmost dialog.
 
+The merge review shows read-only source panes and an editable result through the
+same typed render slot. The editor feature owns CodeMirror, language loading,
+syntax themes, decorations and undo. The Git service uses CodeMirror's pure diff
+utility with bounded detailed scanning to compare against the common ancestor.
+Marker-free projections locate conflicts in each source without searching for
+potentially repeated block text. Navigation reveals corresponding positions in
+all three panes; the first per-block choice replaces the selected marker range.
+Drafts retain stable block identities and result boundaries after that choice.
+The opposite source then offers replacement or appending below that block,
+without changing surrounding code. CodeMirror records block metadata alongside
+its text history so undo/redo restores both boundaries and available choices.
+Edits crossing a block boundary disable its arrows instead of guessing a new
+replacement range. Reloaded source versions are compared with the draft's
+original sides, preventing undo from re-enabling arrows for outdated versions.
+Non-conflicting edits supplied by Git remain in the initial result. All offsets
+used for presentation are normalized to CodeMirror's LF positions while saved
+drafts retain their original line endings. Review computations run only for the
+selected conflict file; no project scanning is introduced.
+
+Discard actions compose in `useDiscardActions`. The native `git_discard` service
+prepares an explicit tracked-file selection, including both ends of a rename,
+and fingerprints HEAD, the index, status and selected working files. Applying
+revalidates that preview under the repository operation guard, then passes only
+the confirmed literal paths to Git. Untracked files, links, submodules and Git
+metadata are protected. The invoking window's project is authorized by thin
+native commands; editor drafts are checked before preview and after
+confirmation. Git and document reconciliation refresh the current workspace
+after completion. Replacing a shared confirmation cancels the previous promise,
+releasing pending operation locks if a native window-close prompt interrupts the
+interaction.
+
 Merge draft transitions publish their dirty flag synchronously to a per-window
 close guard. Native close events read that guard directly, so closing
 immediately after an edit does not depend on a deferred React render or effect.
@@ -165,15 +271,43 @@ Draft cleanup clears the guard when the resolver unmounts.
 
 The optional terminal workspace rail filters the existing pane tree; its xterm
 instances retain stable parents and keys. Saved remote profiles and view
-preferences are explicit UI state. Pure connection validation and space grouping
-live in the agents domain service. The typed remote command validates the
-invoking window's project, builds OpenSSH argv natively, and reuses the owned
-PTY lifetime. Structured multiplexer fields reject shell syntax. User-authored
-custom command text is one remote argument, never evaluated by a local shell.
-Remote panes do not start local provider usage probes. Browser-provider profiles
-dispatch only an explicitly requested HTTPS URL through the existing
-external-URL command. See [Remote sessions](REMOTE-SESSIONS.md) for capabilities
-and boundaries.
+preferences are explicit UI state. The pure agent-activity service inspects a
+bounded live viewport for working, approval, question and ready cues; no
+transcript scan or background poll is added. Sidebar status presentation keeps
+connection states distinct from detected activity and includes approvals and
+questions in the attention filter. Theme-specific colors, icons and labels
+provide redundant indicators without changing terminal identity. Pure connection
+validation and space grouping live in the agents domain service. The typed
+remote command validates the invoking window's project, builds OpenSSH argv
+natively, and reuses the owned PTY lifetime. Structured multiplexer fields
+reject shell syntax. User-authored custom command text is one remote argument,
+never evaluated by a local shell. Remote panes do not start local provider usage
+probes. Browser-provider profiles dispatch only an explicitly requested HTTPS
+URL through the existing external-URL command. See
+[Remote sessions](REMOTE-SESSIONS.md) for capabilities and boundaries.
+
+Desktop activity inspection reads at most 256 live physical rows, joins xterm
+soft wraps, and removes trailing blank screen space before classifying a bounded
+tail. A per-process domain tracker invalidates old prompt evidence on
+submission. Silence cannot complete a task. Claude's new completion row can
+finish its foreground turn even with a custom footer, cropped composer, unsent
+draft or running background shells. Completion identity excludes decorative
+glyphs and background-shell counts; repeated occurrences are tracked so a new
+equal-duration turn can finish without accepting retained history after submit.
+Ambiguous composers during a turn report unknown activity. The tracker is owned
+by the existing terminal lifetime, receives only screen/input events, and stores
+no transcripts on disk. Pane exit/error state retains presentation priority.
+
+Codex uses a provider-specific domain tracker that also receives OSC title
+events from the existing xterm instance. The default activity prefix and its
+removal from the same title provide working/idle evidence without polling or
+changing provider configuration. Action-required titles are refined by the
+current approval/question controls. A typed optional cell-attribute port lets
+screen extraction distinguish Codex's dim placeholder from a draft or disabled
+composer. Older pre-answer dividers cannot finish a turn; without title
+evidence, only a fresh final completion footer can. The same bounded screen and
+process lifetime constraints apply. This adapter does not change the independent
+background-session server or infer remote activity from SSH output.
 
 Style imports retain their original cascade order. Responsive overrides load
 last. Shared scrollbar styles belong in `styles/scrollbars.css`: containers use

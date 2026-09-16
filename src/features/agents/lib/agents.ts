@@ -1,4 +1,5 @@
 import { readStored } from '../../../platform/storage/preferences';
+import { detectAgentActivity } from '../services/agent-activity';
 import type {
   AgentKind,
   AgentObservation,
@@ -59,30 +60,7 @@ export function inspectAgentScreen(
 ): AgentObservation {
   // Only the live bottom rows are supplied; never inspect scrolled-back history.
   const screen = lines.slice(-28).join('\n');
-  const bottom = lines.slice(-16).join('\n');
-  let activity: AgentObservation['activity'] = 'unknown';
-  if (kind !== 'shell' && kind !== 'custom') {
-    if (
-      /esc(?:ape)? to (?:interrupt|cancel)|(?:thinking|working|generating|running|pondering|crafting|reasoning)…|(?:thinking|working|generating)\.\.\./i.test(
-        bottom
-      )
-    )
-      activity = 'working';
-    else if (
-      /press enter to (?:confirm|approve)/i.test(bottom) ||
-      (/do you want to (?:allow|proceed)|would you like to (?:run|approve)|allow (?:once|this|claude)|requires? (?:your )?approval|permission (?:required|request)/i.test(
-        bottom
-      ) &&
-        /(?:^|\n)\s*[❯›>]?\s*(?:[1-9][.)]\s*)?(?:yes|no|allow once|allow always|deny|approve once)\b|\[y\/n\]/i.test(
-          bottom
-        ))
-    )
-      activity = 'attention';
-    else if (
-      /(?:^|\n)\s*[❯›>]\s*(?:$|\n)|\? for shortcuts|send a message|type your message/i.test(bottom)
-    )
-      activity = 'ready';
-  }
+  const activity = detectAgentActivity(kind, lines);
   const remaining = screen.match(/(\d+(?:\.\d+)?)%\s*(?:context\s*)?(?:left|remaining)/i);
   const used =
     screen.match(/(\d+(?:\.\d+)?)%\s*context(?:\s*used)?/i) ??
@@ -105,8 +83,11 @@ export function agentStatus(state: PaneState | undefined, observation?: AgentObs
   if (state === 'error') return { label: 'Error', tone: 'error' };
   if (!state || state === 'starting') return { label: 'Starting', tone: 'muted' };
   if (observation?.activity === 'attention') return { label: 'Needs attention', tone: 'attention' };
+  if (observation?.activity === 'question')
+    return { label: 'Waiting for answer · detected', tone: 'attention' };
   if (observation?.activity === 'working') return { label: 'Working · detected', tone: 'working' };
   if (observation?.activity === 'ready') return { label: 'Ready · detected', tone: 'ready' };
+  if (observation?.activity === 'unknown') return { label: 'Activity unknown', tone: 'muted' };
   return state === 'output'
     ? { label: 'Output', tone: 'working' }
     : { label: 'Connected', tone: 'ready' };

@@ -8,6 +8,7 @@ import {
   Minus,
   Plus,
   RefreshCw,
+  Undo2,
 } from 'lucide-react';
 import { useState } from 'react';
 import type { Change, GitSnapshot } from '../../../shared/contracts/workspace';
@@ -25,6 +26,7 @@ interface Props {
   onBranches: () => void;
   onWorktrees: () => void;
   onResolve: (path?: string) => void;
+  onDiscard: (paths: string[]) => void;
 }
 export default function GitPanel({
   git,
@@ -37,6 +39,7 @@ export default function GitPanel({
   onBranches,
   onWorktrees,
   onResolve,
+  onDiscard,
 }: Props) {
   const handleBranchActionClick = () => onBranchAction('fetch');
   const handleBranchActionClick2 = () => onBranchAction('push');
@@ -53,10 +56,14 @@ export default function GitPanel({
   const [message, setMessage] = useState('');
   const handleResolve = () => onResolve();
   const conflicted = git?.changes.filter(change => change.conflict) ?? [];
+  const discardable = git?.changes.filter(change => !change.conflict && change.index !== '?') ?? [];
+  const discardBlocked = busy || Boolean(git?.operation) || conflicted.length > 0;
+  const handleDiscardAll = () => onDiscard(discardable.map(change => change.path));
   const staged = git?.changes.filter(c => ![' ', '?'].includes(c.index) && !c.conflict) ?? [];
   const working =
     git?.changes.filter(c => !c.conflict && (c.working !== ' ' || c.index === '?')) ?? [];
   const render = (change: Change, isStaged: boolean) => {
+    const handleDiscard = () => onDiscard([change.path]);
     const handleOpenClick = () =>
       change.conflict
         ? onResolve(change.path)
@@ -105,6 +112,16 @@ export default function GitPanel({
             <Plus size={13} />
           )}
         </button>
+        {!change.conflict && change.index !== '?' && (
+          <button
+            className='icon-button'
+            title={`Discard changes to ${change.path}`}
+            disabled={discardBlocked}
+            onClick={handleDiscard}
+          >
+            <Undo2 size={13} />
+          </button>
+        )}
       </div>
     );
   };
@@ -212,6 +229,14 @@ export default function GitPanel({
               Commit staged changes
             </button>
           </form>
+          <button
+            className='button secondary git-discard-all'
+            disabled={discardBlocked || !discardable.length}
+            onClick={handleDiscardAll}
+            title='Discard staged and unstaged changes to tracked files. Untracked files are kept.'
+          >
+            <Undo2 size={14} /> Discard all changes…
+          </button>
           <div className='git-group-title'>
             STAGED CHANGES<span>{staged.length}</span>
           </div>

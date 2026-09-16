@@ -2,6 +2,7 @@
 name = "emdeck-session"
 version = "0.1.0"
 edition = "2021"
+rust-version = "1.89"
 publish = false
 license = "Apache-2.0"
 description = "Emdeck's independent, headless terminal session server"
@@ -14,6 +15,9 @@ tempfile = "3"
 uuid = { version = "1", features = ["v4"] }
 vt100 = "0.16.2"
 base64 = "0.22"
+rustls = { version = "0.23", default-features = false, features = ["std", "ring"] }
+rcgen = { version = "0.14", default-features = false, features = ["crypto", "ring"] }
+sha2 = "0.10"
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"

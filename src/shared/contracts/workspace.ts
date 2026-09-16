@@ -189,7 +189,7 @@ export interface AgentUsage {
   limits: LimitWindow[];
 }
 export interface AgentObservation {
-  activity: 'attention' | 'working' | 'ready' | 'unknown';
+  activity: 'attention' | 'question' | 'working' | 'ready' | 'unknown';
   contextPercent: number | null;
   model: string | null;
   observedAt: number;
