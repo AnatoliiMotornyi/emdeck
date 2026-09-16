@@ -217,7 +217,10 @@ carries an explicit migration.
 - **Native.** Folder and `.gitignore` creation on first write; `.gitignore`
   contents; atomic replacement; rejection of roots outside the authorised
   project; a project folder that is not a Git repository.
-- **Integration.** A write-then-read round trip through the real command pair.
+- **Round trip.** The write-then-read cycle is covered on the Rust side, where
+  the real filesystem work happens. `tests/integration` runs in a Node
+  environment with no Tauri runtime, so it cannot invoke the command pair; the
+  browser path is covered end to end through the preview adapter instead.
 - **End to end.** The reported bug: set project A's accent, open project B and
   confirm it is unaffected, reload and confirm A's accent survived. A second
   case asserts that editing a project leaves `relay:settings` unchanged.
