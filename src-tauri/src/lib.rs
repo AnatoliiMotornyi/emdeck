@@ -1,6 +1,7 @@
 mod commands;
 mod services;
 mod state;
+mod windows;
 use services::{agent_command, agent_usage, codex_usage, terminal};
 use state::Projects;
 use tauri::Manager;
@@ -17,6 +18,7 @@ pub fn run() {
         return;
     }
     tauri::Builder::default()
+        .plugin(tauri_plugin_single_instance::init(windows::reopen))
         .plugin(tauri_plugin_dialog::init())
         .manage(Projects::default())
         .manage(services::sessions::Sessions::default())
@@ -26,9 +28,36 @@ pub fn run() {
             app.state::<terminal::WindowTerminals>()
                 .register("main")
                 .map_err(std::io::Error::other)?;
+            let args = std::env::args().collect::<Vec<_>>();
+            let cwd = std::env::current_dir()?;
+            match services::project_identity::launch_folder(&args, &cwd) {
+                Ok(Some(root)) => {
+                    let projects = app.state::<Projects>();
+                    let _routing = projects
+                        .routing
+                        .lock()
+                        .map_err(|e| std::io::Error::other(e.to_string()))?;
+                    projects
+                        .activate("main", &root)
+                        .map_err(std::io::Error::other)?;
+                    projects
+                        .initial
+                        .lock()
+                        .map_err(|e| std::io::Error::other(e.to_string()))?
+                        .insert("main".into(), root.to_string_lossy().into_owned());
+                }
+                Ok(None) => {}
+                Err(error) => windows::report_error(app.handle(), error),
+            }
             Ok(())
         })
         .on_window_event(|window, event| {
+            if matches!(event, tauri::WindowEvent::Focused(true)) {
+                window
+                    .app_handle()
+                    .state::<Projects>()
+                    .focused(window.label());
+            }
             if matches!(event, tauri::WindowEvent::Destroyed) {
                 window
                     .app_handle()
@@ -53,6 +82,7 @@ pub fn run() {
             commands::projects::open_project,
             commands::projects::startup_project,
             commands::projects::open_project_window,
+            commands::projects::focus_project_window,
             commands::workspace::read_directory,
             commands::workspace::read_file,
             commands::workspace::find_file,
@@ -92,6 +122,28 @@ pub fn run() {
         .build(tauri::generate_context!())
         .expect("Could not start Emdeck")
         .run(|app, event| {
+            #[cfg(target_os = "macos")]
+            match &event {
+                tauri::RunEvent::Reopen { .. } => {
+                    windows::reopen(app, vec!["emdeck".into()], String::new())
+                }
+                tauri::RunEvent::Opened { urls } => {
+                    for url in urls {
+                        if let Ok(path) = url.to_file_path() {
+                            windows::reopen(
+                                app,
+                                vec![
+                                    "emdeck".into(),
+                                    "--project".into(),
+                                    path.to_string_lossy().into_owned(),
+                                ],
+                                String::new(),
+                            );
+                        }
+                    }
+                }
+                _ => {}
+            }
             if matches!(event, tauri::RunEvent::Exit) {
                 app.state::<terminal::WindowTerminals>().close_all();
             }

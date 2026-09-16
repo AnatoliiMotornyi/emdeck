@@ -58,10 +58,17 @@ export const test = base.extend<{ desktop: void }>({
               case 'open_project':
                 if (args.path === localStorage.getItem('test:missing-project'))
                   throw 'Project folder no longer exists. Open another folder.';
-                return { root: args.path, name: String(args.path).split('/').pop() };
+                if (state.__emdeckOpenFocused)
+                  return { kind: 'focused', window: state.__emdeckOpenFocused };
+                return {
+                  kind: 'opened',
+                  project: { root: args.path, name: String(args.path).split('/').pop() },
+                };
+              case 'focus_project_window':
+                return state.__emdeckFocusExisting ?? null;
               case 'open_project_window':
                 if (state.__emdeckWindowError) throw 'Could not create a new window';
-                return 'workspace-1';
+                return { label: 'workspace-1', reused: state.__emdeckWindowReused === true };
               case 'read_directory':
                 return [{ name: 'notes.ts', path: 'notes.ts', isDir: false, isSymlink: false }];
               case 'read_file':

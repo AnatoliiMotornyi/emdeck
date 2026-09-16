@@ -3,6 +3,131 @@
 Versions through 0.1.3 were released as Relay; versions 0.1.4–0.1.14 were
 released as Veldri. Historical artifact names below are unchanged.
 
+## Unreleased — terminal scrollback during resizing
+
+Validated on Windows x64 on 2026-09-15. `bun run verify` passed with 197 unit, 3
+integration, 88 native and 155 browser tests; three existing native tests remain
+opt-in. Rust formatting, Clippy and source/history secret scans passed. React
+Doctor retained its reviewed findings without new diagnostics.
+
+The new row-resize regression failed against the previous build: the first
+visible historical line changed from output 0 to output 6. It passes with line
+anchoring, including shrinking/growing and following output at the bottom. Both
+resize regressions passed five consecutive runs against fixed assets, followed
+by the full suite. The original CI test now uses a real wheel gesture and waits
+for rendered history instead of racing a raw `scrollTop` assignment against
+xterm's asynchronous resize. Unit tests cover reflow, rapid fits, buffer
+changes, trimmed markers and cancellation/disposal. No user IDE session was
+restarted; macOS/Linux execution of this follow-up remains for CI.
+
+## Unreleased — compact Workspaces sidebar
+
+Validated on Windows x64 on 2026-09-15. `bun run verify` passed with 193 unit, 3
+integration, 88 native and 154 browser tests; three existing native
+provider/soak tests remain opt-in. Rust formatting and Clippy passed. The normal
+Windows executable built from the same fixed frontend assets. React Doctor
+findings were reviewed in the [audit notes](REACT-AUDIT.md).
+
+Six new browser workflows cover compact status colors, icons and keyboard focus
+in Dark, Light and Graphite; live attention counts; remembered collapse and
+restored search text; local/remote background jobs; and short-window scrolling
+with hover-only scrollbars. Terminal DOM markers, keyboard input and recorded
+RPCs verify that collapse and expansion do not stop processes, remount terminal
+views or acquire duplicate background leases. The expanded status tests and
+existing workspace flows pass as well. Screenshots of all three themes and the
+short layout were visually reviewed. Native macOS/Linux interaction remains for
+platform validation; no running user session was restarted.
+
+## Unreleased — one window per project
+
+Validated on Windows x64 on 2026-09-15. `bun run verify` passed with 193 unit, 3
+integration, 88 native and 148 browser tests; the three existing native
+provider/soak tests remain opt-in. Rust formatting, Clippy and the Rust
+dependency audit passed. Third-party Rust license notices include the
+single-instance plugin and its dependencies. React Doctor findings were reviewed
+in the [audit notes](REACT-AUDIT.md). The normal Windows release executable
+built successfully with the production identifier and the same fixed frontend
+assets.
+
+Native registry tests cover concurrent folder claims, Windows case/extended
+paths, authorization isolation and releasing ownership. Five browser regressions
+cover new-window reuse, same-window and other-window focus before discarding, a
+claim during confirmation, and startup initialization. Existing worktree, close,
+project replacement and terminal workflows also pass.
+
+The real WebView2 acceptance script in
+[Project windows](PROJECT-WINDOWS.md#windows-acceptance-test) passed with a
+separate app identifier, profile and temporary folders. It verifies one window
+for path aliases and concurrent opens, second-process forwarding with relative
+paths, focus and unminimize, separate windows for separate folders, native
+replacement refusal, preserved unsaved editor text and a still-responsive PTY,
+and reopening after a window closes. The shell's changing OSC title is handled
+by the test locator. No user project or running agent was used as a fixture.
+Native macOS/Linux window interaction remains for platform validation.
+
+## Unreleased — background terminals in Workspaces
+
+Validated on Windows x64 on 2026-09-15. The final `bun run verify` passed with
+193 unit, 3 integration, 85 native and 143 browser tests; three existing native
+provider/soak tests remain opt-in. Rust formatting and Clippy passed. The
+Windows release executable was built from the same fixed frontend assets.
+
+New synthetic local/remote browser workflows cover mixed ordinary/background
+layouts, machine-qualified discovery and status badges, attention filtering,
+keyboard input, view/theme switching, sidebar controls, disconnect, detach,
+explicit creation and restored attachments. DOM markers and RPC records confirm
+that changing presentation creates no duplicate connections or leases and does
+not restart processes. Reopening restores background views without issuing a new
+launch. Project defaults populate untouched creation fields after startup;
+manual form drafts remain intact. Light-theme rendering was visually reviewed.
+
+The full run also covers project-open notifications, editor history, Git,
+attachments and existing background layouts/sharing. The shared canvas exposes
+its layout announcements only while that layout is active. React Doctor retains
+four reviewed Worktrees false positives and 69 warnings; see the
+[audit notes](REACT-AUDIT.md). Native macOS/Linux interaction remains for
+platform validation. No live user agent session was restarted for these checks.
+
+## Unreleased — collapsible background sidebar
+
+Validated on Windows x64 on 2026-09-15. `bun run verify` passed with 190 unit, 3
+integration, 85 native and 139 browser tests; the three existing native
+provider/soak tests remain opt-in. Rust formatting and Clippy passed. The
+Windows release executable was built from the same fixed frontend assets.
+
+Browser coverage verifies sidebar collapse/restore, remembered visibility,
+independent machine disclosures, grouped connection settings, attention
+navigation, and short-window controls in dark and light themes. Terminal DOM
+identity, input and unfinished form values survive collapse; no stop, restart or
+detach operations occur. Existing sharing, pairing and layout tests pass with
+the new navigation. React Doctor findings were reviewed in
+[the audit notes](REACT-AUDIT.md). Native macOS/Linux interaction remains for
+platform validation.
+
+## Unreleased — background terminal layouts
+
+Validated on Windows x64 on 2026-09-15:
+
+- `bun run verify` passed: 190 unit tests, 3 integration tests, 85 native tests
+  and 135 browser workflows. Three existing native provider/soak tests remain
+  opt-in. Rust formatting and Clippy passed with warnings denied.
+- Synthetic local and remote machines exercise rows, columns, grid, mixed
+  splits, pane swapping, pointer cancellation, keyboard movement, resizing,
+  workspace filtering, theme changes, persistence, disconnect/reconnect and
+  terminal renaming. Stable terminal elements and RPC records verify that
+  rearranging views neither remounts attached terminals nor restarts processes.
+- Scrollback and input survive resizing. Small windows scroll, and selecting a
+  preset exits the single-pane expanded view. Pure service tests check layout
+  coverage, minimum pane sizes, non-overlap, hidden panes and corrupt
+  preferences.
+- Pointer-based pane dragging is tested with HTML drag events blocked, matching
+  the constraint imposed by native file-drop handling on Windows. Existing file
+  attachment and clipboard workflows also pass. These browser tests use the
+  fixed production build in Edge; native macOS/Linux interaction awaits CI and
+  platform review.
+- The pinned React Doctor audit was reviewed without suppression; see
+  [the audit notes](REACT-AUDIT.md).
+
 ## Unreleased — public source review
 
 Reviewed on 2026-09-09 before publishing the session-server changes:

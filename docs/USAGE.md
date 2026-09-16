@@ -14,6 +14,17 @@ Open a project, edit a few files, and keep your terminal agents in view. Emdeck
 does not build a project index, run language servers, lint in the background, or
 start agents merely because a project was opened.
 
+Opening a folder that is already open brings its existing window forward and
+preserves its edits and terminals. Different folders open in separate windows.
+See [project windows](PROJECT-WINDOWS.md) for launching a specific folder and
+the single-instance behavior in the next build.
+
+In **Workspaces**, use the sidebar collapse button to keep a narrow strip of
+session tiles beside your terminals. Status colors and icons remain visible;
+hover for full job details or click a tile to focus its terminal. The attention
+filter, launch button and machine controls remain available. Emdeck remembers
+the collapsed view. Expanding restores the sidebar and its search text.
+
 The unreleased **Background sessions** view uses Emdeck's own optional headless
 server to keep local and remote terminal agents running after the IDE closes.
 See [setup, automation and current limits](PERSISTENT-AGENTS.md).

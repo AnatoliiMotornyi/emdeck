@@ -27,6 +27,7 @@ export async function call<C extends DesktopCommand>(
 export const api = {
   open: (path: string) => call('open_project', { path }),
   openWindow: (path: string) => call('open_project_window', { path }),
+  focusProject: (path: string) => call('focus_project_window', { path }),
   startupProject: () => call('startup_project'),
   list: (root: string, path = '') => call('read_directory', { root, path }),
   read: (root: string, path: string) => call('read_file', { root, path }),

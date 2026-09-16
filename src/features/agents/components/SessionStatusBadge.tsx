@@ -27,14 +27,16 @@ const icons = {
 
 export default function SessionStatusBadge({
   status,
+  compact = false,
 }: {
   status: ReturnType<typeof sessionStatus>;
+  compact?: boolean;
 }) {
   const Icon = icons[status.kind];
   return (
     <small className='rail-status' title={status.description}>
       <Icon size={12} aria-hidden='true' />
-      {status.label}
+      <span hidden={compact}>{status.label}</span>
     </small>
   );
 }

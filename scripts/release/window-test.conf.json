@@ -1,0 +1,17 @@
+{
+  "identifier": "dev.relay.ide.window-tests",
+  "productName": "Emdeck Window Test",
+  "build": { "beforeBuildCommand": "" },
+  "app": {
+    "security": {
+      "capabilities": [
+        "main",
+        {
+          "identifier": "window-test-controls",
+          "windows": ["main", "workspace-*"],
+          "permissions": ["core:window:allow-minimize"]
+        }
+      ]
+    }
+  }
+}
