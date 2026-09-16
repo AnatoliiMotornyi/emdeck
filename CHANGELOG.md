@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Bring the current branch up to date with `main` from one toolbar button beside
+  the branch selector: both branches are fast-forwarded from their tracked
+  branches, then `main` is merged in. The run is refused before it starts if the
+  working tree is dirty, nothing is stashed, and conflicts open Source Control.
 - Shelve selected changes into a local per-user store, restoring the committed
   content and clearing the index so the working tree is genuinely clean.
   Unshelving reports a file that changed in the meantime instead of overwriting

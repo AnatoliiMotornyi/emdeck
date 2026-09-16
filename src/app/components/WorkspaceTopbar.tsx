@@ -1,6 +1,7 @@
 import {
   ChevronDown,
   GitBranch,
+  GitMerge,
   LayoutPanelLeft,
   PanelBottom,
   Play,
@@ -10,6 +11,7 @@ import {
 import { version } from '../../../package.json';
 import BranchPicker from '../../features/git/components/BranchPicker';
 import { BranchStatus } from '../../features/git/components/BranchStatus';
+import { integrationRef, shortRef } from '../../features/git/services/references';
 import ProjectMenu from '../../features/projects/components/ProjectMenu';
 import RunPicker from '../../features/runs/components/RunPicker';
 import { native } from '../../platform/desktop/api';
@@ -57,6 +59,9 @@ export default function WorkspaceTopbar({ model }: Props) {
   const handleAction: React.ComponentProps<typeof BranchPicker>['onAction'] = (action, branch) =>
     void branchAction(action, branch);
   const handleCreate = () => void createBranch();
+  const handleSyncClick = () => {
+    if (syncRef) void branchAction('sync', syncRef);
+  };
   const handleResolve = () => showConflicts();
   const handlePaletteClick = () => {
     setPalette(true);
@@ -104,6 +109,7 @@ export default function WorkspaceTopbar({ model }: Props) {
     setTerminalVisible,
     setSettingsOpen,
   } = model;
+  const syncRef = git?.available ? integrationRef(git.branch, git.localBranches) : null;
   return (
     <header className='topbar'>
       <div className='brand' title={`Emdeck ${version} by Erdos Miller`}>
@@ -129,6 +135,17 @@ export default function WorkspaceTopbar({ model }: Props) {
             />
             <ChevronDown size={11} />
           </button>
+          {syncRef && (
+            <button
+              className='icon-button branch-sync'
+              aria-label={`Update from ${shortRef(syncRef)}`}
+              title={`Fetch, then merge '${shortRef(syncRef)}' into '${git?.branch}'. Both branches are fast-forwarded from their tracked branches first.`}
+              disabled={gitBusy}
+              onClick={handleSyncClick}
+            >
+              <GitMerge size={14} />
+            </button>
+          )}
           {branchMenu && (
             <>
               <div className='popover-dismiss' onClick={handleBranchMenuClick} />
