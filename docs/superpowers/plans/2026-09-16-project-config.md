@@ -1,73 +1,98 @@
 # Per-project configuration Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use
+> superpowers:subagent-driven-development (recommended) or
+> superpowers:executing-plans to implement this plan task-by-task. Steps use
+> checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Store each project's settings in a gitignored `.emdeck/` folder at the project root, as sparse overrides layered over global defaults, so a project reopens with the colour and layout it was given.
+**Goal:** Store each project's settings in a gitignored `.emdeck/` folder at the
+project root, as sparse overrides layered over global defaults, so a project
+reopens with the colour and layout it was given.
 
-**Architecture:** Global settings stay in `relay:settings`. Project overrides live in `.emdeck/settings.json`, reached through two new authorised Tauri commands. The two are merged for reading and never merged for writing, which is what prevents a project edit from rewriting global state. A pure service owns parsing and merging; a hook owns the load/debounce/flush lifecycle.
+**Architecture:** Global settings stay in `relay:settings`. Project overrides
+live in `.emdeck/settings.json`, reached through two new authorised Tauri
+commands. The two are merged for reading and never merged for writing, which is
+what prevents a project edit from rewriting global state. A pure service owns
+parsing and merging; a hook owns the load/debounce/flush lifecycle.
 
-**Tech Stack:** TypeScript, React 19, Vite, Vitest, Tauri v2, Rust, Playwright, Bun 1.3.6, Node 22.
+**Tech Stack:** TypeScript, React 19, Vite, Vitest, Tauri v2, Rust, Playwright,
+Bun 1.3.6, Node 22.
 
 **Spec:** `docs/superpowers/specs/2026-09-16-project-config-design.md`
 
 ## Global Constraints
 
 - Node 22 and Bun 1.3.6. Commit `bun.lock`; do not create another JS lockfile.
-- Domain services stay independent of React, Tauri and browser storage. IO arrives through typed ports.
-- Features never import sibling features. The app composes features. Contracts live in `src/shared/contracts`.
-- `src/shared/contracts/*` must not import from `src/features/*`. This is why the config contract types the runs section as `unknown`.
-- Separate type imports (`import type`), named JSX handlers, arrow functions in services.
+- Domain services stay independent of React, Tauri and browser storage. IO
+  arrives through typed ports.
+- Features never import sibling features. The app composes features. Contracts
+  live in `src/shared/contracts`.
+- `src/shared/contracts/*` must not import from `src/features/*`. This is why
+  the config contract types the runs section as `unknown`.
+- Separate type imports (`import type`), named JSX handlers, arrow functions in
+  services.
 - No `eslint-disable` comments.
-- Code-size budgets, no exemptions: components and hooks 500 physical lines, services 700, tests 900.
-- Native commands stay thin. Project authorisation remains on the native side, through `projects.root(window.label(), &root)?`.
+- Code-size budgets, no exemptions: components and hooks 500 physical lines,
+  services 700, tests 900.
+- Native commands stay thin. Project authorisation remains on the native side,
+  through `projects.root(window.label(), &root)?`.
 - Native services must not import command or window-state modules.
-- Preserve `dev.relay.ide`, `relay:` storage keys, window labels and the preview root unless the change includes an explicit data migration.
-- Every new command name must be added to both `src/shared/contracts/desktop.ts` and the `tauri::generate_handler!` list in `src-tauri/src/lib.rs`, or `bun run architecture:check` fails.
-- Before finishing: `bun run verify`, `cargo fmt --manifest-path src-tauri/Cargo.toml --check`, and `cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --locked -- -D warnings`.
+- Preserve `dev.relay.ide`, `relay:` storage keys, window labels and the preview
+  root unless the change includes an explicit data migration.
+- Every new command name must be added to both `src/shared/contracts/desktop.ts`
+  and the `tauri::generate_handler!` list in `src-tauri/src/lib.rs`, or
+  `bun run architecture:check` fails.
+- Before finishing: `bun run verify`,
+  `cargo fmt --manifest-path src-tauri/Cargo.toml --check`, and
+  `cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --locked -- -D warnings`.
 - Do not commit, push or publish beyond the commits this plan specifies.
 
 ---
 
 ## File Structure
 
-| File | Responsibility |
-| --- | --- |
-| `src/shared/contracts/projectConfig.ts` (create) | `ProjectConfig`, `SettingsOverrides`, `WorkspaceOverrides`, constants |
-| `src/features/settings/services/projectConfig.ts` (create) | Pure parse, sanitise, serialise, merge, override helpers |
-| `src/shared/contracts/desktop.ts` (modify) | Register two command signatures |
-| `src/platform/desktop/api.ts` (modify) | `readProjectConfig`, `writeProjectConfig` port methods |
-| `src/platform/preview/demo.ts` (modify) | Browser-preview adapter for both commands |
-| `src-tauri/src/services/project_config.rs` (create) | Folder creation, `.gitignore` seeding, atomic read/write |
-| `src-tauri/src/services/project_config_tests.rs` (create) | Native unit tests |
-| `src-tauri/src/services/mod.rs` (modify) | Register the service module |
-| `src-tauri/src/commands/projects.rs` (modify) | Two thin authorised commands |
-| `src-tauri/src/lib.rs` (modify) | Register both commands |
-| `src/app/hooks/useProjectConfig.ts` (create) | Load on open, debounce writes, flush on switch |
-| `src/app/hooks/useWorkspaceState.ts` (modify) | Split global settings from overrides; expose merged value |
-| `src/features/settings/components/SettingsScope.tsx` (create) | Scope selector and override marker primitives |
-| `src/features/settings/components/Settings.tsx` (modify) | Partial-change `onChange`, scope selector, reset controls |
-| `src/App.tsx` (modify) | Pass scope props to `Settings` |
-| `src/app/components/TerminalPanel.tsx` (modify) | Use `updateSettings` instead of `setSettings` |
-| `src/features/runs/hooks/useRunConfigurations.ts` (modify) | Read and write runs through project config with migration |
-| `tests/unit/project-config.test.ts` (create) | Service unit tests |
-| `tests/e2e/project-config.spec.ts` (create) | The reported bug, end to end |
-| `CHANGELOG.md`, `docs/USAGE.md` (modify) | User-facing documentation |
+| File                                                          | Responsibility                                                        |
+| ------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `src/shared/contracts/projectConfig.ts` (create)              | `ProjectConfig`, `SettingsOverrides`, `WorkspaceOverrides`, constants |
+| `src/features/settings/services/projectConfig.ts` (create)    | Pure parse, sanitise, serialise, merge, override helpers              |
+| `src/shared/contracts/desktop.ts` (modify)                    | Register two command signatures                                       |
+| `src/platform/desktop/api.ts` (modify)                        | `readProjectConfig`, `writeProjectConfig` port methods                |
+| `src/platform/preview/demo.ts` (modify)                       | Browser-preview adapter for both commands                             |
+| `src-tauri/src/services/project_config.rs` (create)           | Folder creation, `.gitignore` seeding, atomic read/write              |
+| `src-tauri/src/services/project_config_tests.rs` (create)     | Native unit tests                                                     |
+| `src-tauri/src/services/mod.rs` (modify)                      | Register the service module                                           |
+| `src-tauri/src/commands/projects.rs` (modify)                 | Two thin authorised commands                                          |
+| `src-tauri/src/lib.rs` (modify)                               | Register both commands                                                |
+| `src/app/hooks/useProjectConfig.ts` (create)                  | Load on open, debounce writes, flush on switch                        |
+| `src/app/hooks/useWorkspaceState.ts` (modify)                 | Split global settings from overrides; expose merged value             |
+| `src/features/settings/components/SettingsScope.tsx` (create) | Scope selector and override marker primitives                         |
+| `src/features/settings/components/Settings.tsx` (modify)      | Partial-change `onChange`, scope selector, reset controls             |
+| `src/App.tsx` (modify)                                        | Pass scope props to `Settings`                                        |
+| `src/app/components/TerminalPanel.tsx` (modify)               | Use `updateSettings` instead of `setSettings`                         |
+| `src/features/runs/hooks/useRunConfigurations.ts` (modify)    | Read and write runs through project config with migration             |
+| `tests/unit/project-config.test.ts` (create)                  | Service unit tests                                                    |
+| `tests/e2e/project-config.spec.ts` (create)                   | The reported bug, end to end                                          |
+| `CHANGELOG.md`, `docs/USAGE.md` (modify)                      | User-facing documentation                                             |
 
 ---
 
 ### Task 1: Pure project-config service
 
-The whole merge model, with no IO and no React. Everything later depends on these names.
+The whole merge model, with no IO and no React. Everything later depends on
+these names.
 
 **Files:**
+
 - Create: `src/shared/contracts/projectConfig.ts`
 - Create: `src/features/settings/services/projectConfig.ts`
 - Test: `tests/unit/project-config.test.ts`
 
 **Interfaces:**
+
 - Consumes: `Settings` and `Layout` from `src/shared/contracts/workspace.ts`.
 - Produces:
-  - `PROJECT_CONFIG_VERSION: 1`, `PROJECT_CONFIG_DIR: '.emdeck'`, `PROJECT_CONFIG_FILE: 'settings.json'`
+  - `PROJECT_CONFIG_VERSION: 1`, `PROJECT_CONFIG_DIR: '.emdeck'`,
+    `PROJECT_CONFIG_FILE: 'settings.json'`
   - `type SettingsOverrides = Partial<Omit<Settings, 'reopenLastProject'>>`
   - `type WorkspaceOverrides = Partial<{ layout: Layout; sidebarWidth: number; terminalHeight: number }>`
   - `interface ProjectConfig { version: number; settings: SettingsOverrides; workspace: WorkspaceOverrides; runs?: unknown }`
@@ -152,18 +177,24 @@ describe('editing the override set', () => {
     });
   });
   it('removes a key so the global value is inherited again', () => {
-    expect(withoutOverride({ accent: '#e8dd7a', fontSize: 15 }, 'accent')).toEqual({
+    expect(
+      withoutOverride({ accent: '#e8dd7a', fontSize: 15 }, 'accent')
+    ).toEqual({
       fontSize: 15,
     });
   });
   it('drops undefined rather than storing it, so absence stays meaningful', () => {
-    expect(withOverride({ accent: '#e8dd7a' }, { accent: undefined })).toEqual({});
+    expect(withOverride({ accent: '#e8dd7a' }, { accent: undefined })).toEqual(
+      {}
+    );
   });
 });
 
 describe('reading a configuration file', () => {
   it('reads a sparse file', () => {
-    const parsed = parseProjectConfig('{"version":1,"settings":{"accent":"#e8dd7a"}}');
+    const parsed = parseProjectConfig(
+      '{"version":1,"settings":{"accent":"#e8dd7a"}}'
+    );
     expect(parsed?.settings).toEqual({ accent: '#e8dd7a' });
     expect(parsed?.workspace).toEqual({});
   });
@@ -171,7 +202,9 @@ describe('reading a configuration file', () => {
     expect(parseProjectConfig('{ not json')).toBeNull();
   });
   it('rejects a version it does not understand', () => {
-    expect(parseProjectConfig('{"version":99,"settings":{"accent":"#e8dd7a"}}')).toBeNull();
+    expect(
+      parseProjectConfig('{"version":99,"settings":{"accent":"#e8dd7a"}}')
+    ).toBeNull();
   });
   it('treats a missing file as no overrides rather than an error', () => {
     expect(parseProjectConfig(null)).toEqual(emptyProjectConfig);
@@ -183,7 +216,9 @@ describe('reading a configuration file', () => {
     expect(parsed?.settings).toEqual({ fontSize: 13 });
   });
   it('clamps a numeric override into the supported range', () => {
-    expect(parseProjectConfig('{"version":1,"settings":{"fontSize":900}}')?.settings).toEqual({
+    expect(
+      parseProjectConfig('{"version":1,"settings":{"fontSize":900}}')?.settings
+    ).toEqual({
       fontSize: 24,
     });
   });
@@ -196,10 +231,14 @@ describe('writing a configuration file', () => {
       settings: { accent: '#e8dd7a' },
       workspace: {},
     });
-    expect(text).toBe('{\n  "version": 1,\n  "settings": {\n    "accent": "#e8dd7a"\n  }\n}\n');
+    expect(text).toBe(
+      '{\n  "version": 1,\n  "settings": {\n    "accent": "#e8dd7a"\n  }\n}\n'
+    );
   });
   it('omits empty sections so an untouched project stays minimal', () => {
-    expect(serialiseProjectConfig(emptyProjectConfig)).toBe('{\n  "version": 1\n}\n');
+    expect(serialiseProjectConfig(emptyProjectConfig)).toBe(
+      '{\n  "version": 1\n}\n'
+    );
   });
   it('round-trips through parse', () => {
     const config = {
@@ -214,8 +253,8 @@ describe('writing a configuration file', () => {
 
 - [ ] **Step 3: Run the tests to verify they fail**
 
-Run: `bun run test:unit -- project-config`
-Expected: FAIL — cannot resolve `src/features/settings/services/projectConfig`.
+Run: `bun run test:unit -- project-config` Expected: FAIL — cannot resolve
+`src/features/settings/services/projectConfig`.
 
 - [ ] **Step 4: Write the service**
 
@@ -227,13 +266,20 @@ import type {
   SettingsOverrides,
   WorkspaceOverrides,
 } from '../../../shared/contracts/projectConfig';
-import { PROJECT_CONFIG_VERSION, emptyProjectConfig } from '../../../shared/contracts/projectConfig';
+import {
+  PROJECT_CONFIG_VERSION,
+  emptyProjectConfig,
+} from '../../../shared/contracts/projectConfig';
 import type { Layout, Settings } from '../../../shared/contracts/workspace';
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 
-const clamp = (value: unknown, low: number, high: number): number | undefined =>
+const clamp = (
+  value: unknown,
+  low: number,
+  high: number
+): number | undefined =>
   typeof value === 'number' && Number.isFinite(value)
     ? Math.min(high, Math.max(low, Math.round(value)))
     : undefined;
@@ -241,7 +287,8 @@ const clamp = (value: unknown, low: number, high: number): number | undefined =>
 const bool = (value: unknown): boolean | undefined =>
   typeof value === 'boolean' ? value : undefined;
 
-const text = (value: unknown): string | undefined => (typeof value === 'string' ? value : undefined);
+const text = (value: unknown): string | undefined =>
+  typeof value === 'string' ? value : undefined;
 
 /** Invalid values are dropped rather than corrected, so the project inherits the global value. */
 const sanitiseSettings = (raw: unknown): SettingsOverrides => {
@@ -249,11 +296,13 @@ const sanitiseSettings = (raw: unknown): SettingsOverrides => {
   const result: SettingsOverrides = {};
   if (raw.theme === 'dark' || raw.theme === 'light' || raw.theme === 'graphite')
     result.theme = raw.theme;
-  if (typeof raw.accent === 'string' && /^#[0-9a-f]{6}$/i.test(raw.accent)) result.accent = raw.accent;
+  if (typeof raw.accent === 'string' && /^#[0-9a-f]{6}$/i.test(raw.accent))
+    result.accent = raw.accent;
   const fontSize = clamp(raw.fontSize, 10, 24);
   if (fontSize !== undefined) result.fontSize = fontSize;
   const terminalFontSize = clamp(raw.terminalFontSize, 10, 24);
-  if (terminalFontSize !== undefined) result.terminalFontSize = terminalFontSize;
+  if (terminalFontSize !== undefined)
+    result.terminalFontSize = terminalFontSize;
   const scrollback = clamp(raw.scrollback, 500, 20000);
   if (scrollback !== undefined) result.scrollback = scrollback;
   const wordWrap = bool(raw.wordWrap);
@@ -261,10 +310,14 @@ const sanitiseSettings = (raw: unknown): SettingsOverrides => {
   const showHidden = bool(raw.showHidden);
   if (showHidden !== undefined) result.showHidden = showHidden;
   const detectRunScripts = bool(raw.detectRunScripts);
-  if (detectRunScripts !== undefined) result.detectRunScripts = detectRunScripts;
+  if (detectRunScripts !== undefined)
+    result.detectRunScripts = detectRunScripts;
   const shell = text(raw.shell);
   if (shell !== undefined) result.shell = shell;
-  if (raw.terminalPlacement === 'workspace' || raw.terminalPlacement === 'editor')
+  if (
+    raw.terminalPlacement === 'workspace' ||
+    raw.terminalPlacement === 'editor'
+  )
     result.terminalPlacement = raw.terminalPlacement;
   return result;
 };
@@ -274,7 +327,8 @@ const layouts: Layout[] = ['columns', 'rows', 'grid'];
 const sanitiseWorkspace = (raw: unknown): WorkspaceOverrides => {
   if (!isRecord(raw)) return {};
   const result: WorkspaceOverrides = {};
-  if (layouts.includes(raw.layout as Layout)) result.layout = raw.layout as Layout;
+  if (layouts.includes(raw.layout as Layout))
+    result.layout = raw.layout as Layout;
   const sidebarWidth = clamp(raw.sidebarWidth, 140, 720);
   if (sidebarWidth !== undefined) result.sidebarWidth = sidebarWidth;
   const terminalHeight = clamp(raw.terminalHeight, 80, 2000);
@@ -283,7 +337,9 @@ const sanitiseWorkspace = (raw: unknown): WorkspaceOverrides => {
 };
 
 /** `null` means unreadable: the caller keeps global settings and leaves the file alone. */
-export const parseProjectConfig = (raw: string | null): ProjectConfig | null => {
+export const parseProjectConfig = (
+  raw: string | null
+): ProjectConfig | null => {
   if (raw === null) return emptyProjectConfig;
   let parsed: unknown;
   try {
@@ -291,7 +347,8 @@ export const parseProjectConfig = (raw: string | null): ProjectConfig | null => 
   } catch {
     return null;
   }
-  if (!isRecord(parsed) || parsed.version !== PROJECT_CONFIG_VERSION) return null;
+  if (!isRecord(parsed) || parsed.version !== PROJECT_CONFIG_VERSION)
+    return null;
   const config: ProjectConfig = {
     version: PROJECT_CONFIG_VERSION,
     settings: sanitiseSettings(parsed.settings),
@@ -309,7 +366,10 @@ export const serialiseProjectConfig = (config: ProjectConfig): string => {
   return `${JSON.stringify(body, null, 2)}\n`;
 };
 
-export const mergeSettings = (global: Settings, overrides: SettingsOverrides): Settings => ({
+export const mergeSettings = (
+  global: Settings,
+  overrides: SettingsOverrides
+): Settings => ({
   ...global,
   ...overrides,
   reopenLastProject: global.reopenLastProject,
@@ -338,14 +398,16 @@ export const withoutOverride = (
 
 - [ ] **Step 5: Run the tests to verify they pass**
 
-Run: `bun run test:unit -- project-config`
-Expected: PASS, all cases.
+Run: `bun run test:unit -- project-config` Expected: PASS, all cases.
 
-If `Layout` is not the union `'columns' | 'rows' | 'grid'`, read its definition in `src/shared/contracts/workspace.ts` and correct the `layouts` array to list exactly its members.
+If `Layout` is not the union `'columns' | 'rows' | 'grid'`, read its definition
+in `src/shared/contracts/workspace.ts` and correct the `layouts` array to list
+exactly its members.
 
 - [ ] **Step 6: Check style and boundaries**
 
-Run: `bun run lint:check && bun run type-check && bun run format:check && bun run architecture:check`
+Run:
+`bun run lint:check && bun run type-check && bun run format:check && bun run architecture:check`
 Expected: all pass. The contract must not import from `src/features`.
 
 - [ ] **Step 7: Commit**
@@ -360,6 +422,7 @@ git commit -m "feat: add pure project configuration service"
 ### Task 2: Native storage for `.emdeck/`
 
 **Files:**
+
 - Create: `src-tauri/src/services/project_config.rs`
 - Create: `src-tauri/src/services/project_config_tests.rs`
 - Modify: `src-tauri/src/services/mod.rs`
@@ -367,8 +430,12 @@ git commit -m "feat: add pure project configuration service"
 - Modify: `src-tauri/src/lib.rs`
 
 **Interfaces:**
-- Consumes: `crate::services::workspace::{err, Result}`, `crate::state::Projects`.
-- Produces: `project_config::read(root: &Path) -> Result<Option<String>>`, `project_config::write(root: &Path, content: &str) -> Result<()>`, and commands `read_project_config` / `write_project_config`.
+
+- Consumes: `crate::services::workspace::{err, Result}`,
+  `crate::state::Projects`.
+- Produces: `project_config::read(root: &Path) -> Result<Option<String>>`,
+  `project_config::write(root: &Path, content: &str) -> Result<()>`, and
+  commands `read_project_config` / `write_project_config`.
 
 - [ ] **Step 1: Write the failing native tests**
 
@@ -435,7 +502,8 @@ fn reports_non_utf8_contents_as_an_error_rather_than_panicking() {
 
 - [ ] **Step 2: Run them to verify they fail**
 
-Run: `cargo test --manifest-path src-tauri/Cargo.toml --workspace --locked project_config`
+Run:
+`cargo test --manifest-path src-tauri/Cargo.toml --workspace --locked project_config`
 Expected: FAIL — module `project_config` does not exist.
 
 - [ ] **Step 3: Write the native service**
@@ -518,7 +586,8 @@ fn persist(path: &Path, content: &str) -> Result<()> {
 mod tests;
 ```
 
-Add to `src-tauri/src/services/mod.rs`, keeping alphabetical order (after `markdown`):
+Add to `src-tauri/src/services/mod.rs`, keeping alphabetical order (after
+`markdown`):
 
 ```rust
 pub(crate) mod project_config;
@@ -526,12 +595,14 @@ pub(crate) mod project_config;
 
 - [ ] **Step 4: Run the native tests to verify they pass**
 
-Run: `cargo test --manifest-path src-tauri/Cargo.toml --workspace --locked project_config`
+Run:
+`cargo test --manifest-path src-tauri/Cargo.toml --workspace --locked project_config`
 Expected: PASS, six tests.
 
 - [ ] **Step 5: Add the two commands**
 
-Append to `src-tauri/src/commands/projects.rs`, and add `project_config` to the existing `crate::services` import:
+Append to `src-tauri/src/commands/projects.rs`, and add `project_config` to the
+existing `crate::services` import:
 
 ```rust
 #[tauri::command]
@@ -554,7 +625,8 @@ pub(crate) async fn write_project_config(
 }
 ```
 
-Register both in `src-tauri/src/lib.rs`, inside `tauri::generate_handler![`, next to the other `commands::projects::` entries:
+Register both in `src-tauri/src/lib.rs`, inside `tauri::generate_handler![`,
+next to the other `commands::projects::` entries:
 
 ```rust
             commands::projects::read_project_config,
@@ -563,7 +635,8 @@ Register both in `src-tauri/src/lib.rs`, inside `tauri::generate_handler![`, nex
 
 - [ ] **Step 6: Verify the native side builds clean**
 
-Run: `cargo fmt --manifest-path src-tauri/Cargo.toml --check && cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --locked -- -D warnings`
+Run:
+`cargo fmt --manifest-path src-tauri/Cargo.toml --check && cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --locked -- -D warnings`
 Expected: both pass.
 
 - [ ] **Step 7: Commit**
@@ -578,26 +651,31 @@ git commit -m "feat: store project configuration in a gitignored .emdeck folder"
 ### Task 3: Typed port and preview adapter
 
 **Files:**
+
 - Modify: `src/shared/contracts/desktop.ts`
 - Modify: `src/platform/desktop/api.ts`
 - Modify: `src/platform/preview/demo.ts`
 
 **Interfaces:**
+
 - Consumes: the native commands from Task 2.
-- Produces: `api.readProjectConfig(root: string): Promise<string | null>` and `api.writeProjectConfig(root: string, content: string): Promise<void>`.
+- Produces: `api.readProjectConfig(root: string): Promise<string | null>` and
+  `api.writeProjectConfig(root: string, content: string): Promise<void>`.
 
 - [ ] **Step 1: Add the command signatures**
 
-In `src/shared/contracts/desktop.ts`, inside `DesktopCommands`, after `startup_project`:
+In `src/shared/contracts/desktop.ts`, inside `DesktopCommands`, after
+`startup_project`:
 
 ```ts
-  read_project_config: Command<Repository, string | null>;
-  write_project_config: Command<Repository & { content: string }, void>;
+read_project_config: Command<Repository, string | null>;
+write_project_config: Command<Repository & { content: string }, void>;
 ```
 
 - [ ] **Step 2: Add the port methods**
 
-In `src/platform/desktop/api.ts`, inside the `api` object after `startupProject`:
+In `src/platform/desktop/api.ts`, inside the `api` object after
+`startupProject`:
 
 ```ts
   readProjectConfig: (root: string) => call('read_project_config', { root }),
@@ -620,8 +698,9 @@ In `src/platform/preview/demo.ts`, inside the `switch`, before `default`:
 
 - [ ] **Step 4: Verify the command lists agree**
 
-Run: `bun run architecture:check && bun run type-check`
-Expected: PASS. This check compares the TypeScript command list against Rust registration, so a missing entry on either side fails here.
+Run: `bun run architecture:check && bun run type-check` Expected: PASS. This
+check compares the TypeScript command list against Rust registration, so a
+missing entry on either side fails here.
 
 - [ ] **Step 5: Commit**
 
@@ -634,15 +713,19 @@ git commit -m "feat: expose project configuration through the desktop port"
 
 ### Task 4: Load, merge and persist in the workspace
 
-The task that fixes the reported bug. Global settings and project overrides become two state variables that are merged for reading and never for writing.
+The task that fixes the reported bug. Global settings and project overrides
+become two state variables that are merged for reading and never for writing.
 
 **Files:**
+
 - Create: `src/app/hooks/useProjectConfig.ts`
 - Modify: `src/app/hooks/useWorkspaceState.ts:26` and `:142-155`
 - Modify: `src/app/components/TerminalPanel.tsx:37-41`
 
 **Interfaces:**
-- Consumes: Task 1's service, Task 3's port, `Project` from `src/shared/contracts/workspace.ts`.
+
+- Consumes: Task 1's service, Task 3's port, `Project` from
+  `src/shared/contracts/workspace.ts`.
 - Produces from `useProjectConfig(project, fail)`:
   - `overrides: SettingsOverrides`
   - `workspaceOverrides: WorkspaceOverrides`
@@ -650,7 +733,11 @@ The task that fixes the reported bug. Global settings and project overrides beco
   - `ready: boolean`
   - `setOverrides(change: (previous: SettingsOverrides) => SettingsOverrides): void`
   - `setRuns(value: unknown): void`
-- Produces from `useWorkspaceState`: `settings` (merged), `globalSettings`, `overrides`, `updateSettings(change: SettingsOverrides, scope?: 'project' | 'global')`, `resetOverride(key: keyof SettingsOverrides)`, `projectScopeAvailable: boolean`.
+- Produces from `useWorkspaceState`: `settings` (merged), `globalSettings`,
+  `overrides`,
+  `updateSettings(change: SettingsOverrides, scope?: 'project' | 'global')`,
+  `resetOverride(key: keyof SettingsOverrides)`,
+  `projectScopeAvailable: boolean`.
 
 - [ ] **Step 1: Write the hook**
 
@@ -672,9 +759,16 @@ import type { Project } from '../../shared/contracts/workspace';
 
 const SAVE_DELAY = 300;
 
-export function useProjectConfig(project: Project | null, fail: (error: unknown) => void) {
+export function useProjectConfig(
+  project: Project | null,
+  fail: (error: unknown) => void
+) {
   const root = project?.root ?? '';
-  const [state, setState] = useState({ root: '', config: emptyProjectConfig, ready: false });
+  const [state, setState] = useState({
+    root: '',
+    config: emptyProjectConfig,
+    ready: false,
+  });
   // A corrupt file is never rewritten, so a user can repair it by hand.
   const writable = useRef(true);
   const pending = useRef<{ root: string; config: ProjectConfig } | null>(null);
@@ -707,7 +801,10 @@ export function useProjectConfig(project: Project | null, fail: (error: unknown)
         if (cancelled) return;
         const parsed = parseProjectConfig(raw);
         writable.current = parsed !== null;
-        if (!parsed) fail('This project has an unreadable .emdeck/settings.json. Using global settings.');
+        if (!parsed)
+          fail(
+            'This project has an unreadable .emdeck/settings.json. Using global settings.'
+          );
         setState({ root, config: parsed ?? emptyProjectConfig, ready: true });
       })
       .catch(error => {
@@ -736,7 +833,10 @@ export function useProjectConfig(project: Project | null, fail: (error: unknown)
             pending.current = null;
             if (!queued) return;
             void api
-              .writeProjectConfig(queued.root, serialiseProjectConfig(queued.config))
+              .writeProjectConfig(
+                queued.root,
+                serialiseProjectConfig(queued.config)
+              )
               .catch(error => {
                 writable.current = false;
                 fail(error);
@@ -769,31 +869,32 @@ export function useProjectConfig(project: Project | null, fail: (error: unknown)
 
 - [ ] **Step 2: Split the settings state**
 
-In `src/app/hooks/useWorkspaceState.ts`, rename the settings state so the global layer is explicit. Replace line 26:
+In `src/app/hooks/useWorkspaceState.ts`, rename the settings state so the global
+layer is explicit. Replace line 26:
 
 ```ts
-  const [globalSettings, setGlobalSettings] = useState(loadSettings);
+const [globalSettings, setGlobalSettings] = useState(loadSettings);
 ```
 
 After `fail` is defined (it is needed by the hook), add:
 
 ```ts
-  const config = useProjectConfig(project, fail);
-  const settings = mergeSettings(globalSettings, config.overrides);
-  const projectScopeAvailable = Boolean(project);
-  const updateSettings = useCallback(
-    (change: SettingsOverrides, scope: 'project' | 'global' = 'project') => {
-      if (scope === 'project' && projectScopeAvailable)
-        config.setOverrides(previous => withOverride(previous, change));
-      else setGlobalSettings(previous => ({ ...previous, ...change }));
-    },
-    [config, projectScopeAvailable]
-  );
-  const resetOverride = useCallback(
-    (key: keyof SettingsOverrides) =>
-      config.setOverrides(previous => withoutOverride(previous, key)),
-    [config]
-  );
+const config = useProjectConfig(project, fail);
+const settings = mergeSettings(globalSettings, config.overrides);
+const projectScopeAvailable = Boolean(project);
+const updateSettings = useCallback(
+  (change: SettingsOverrides, scope: 'project' | 'global' = 'project') => {
+    if (scope === 'project' && projectScopeAvailable)
+      config.setOverrides(previous => withOverride(previous, change));
+    else setGlobalSettings(previous => ({ ...previous, ...change }));
+  },
+  [config, projectScopeAvailable]
+);
+const resetOverride = useCallback(
+  (key: keyof SettingsOverrides) =>
+    config.setOverrides(previous => withoutOverride(previous, key)),
+  [config]
+);
 ```
 
 Add the imports at the top:
@@ -813,38 +914,45 @@ import type { SettingsOverrides } from '../../shared/contracts/projectConfig';
 Replace the effect at `src/app/hooks/useWorkspaceState.ts:142-145` with:
 
 ```ts
-  useEffect(() => {
-    document.documentElement.dataset.theme = settings.theme;
-    document.documentElement.style.setProperty('--accent', settings.accent);
-  }, [settings.theme, settings.accent]);
-  useEffect(() => {
-    // Only the global layer reaches relay:settings. A project edit must never land here.
-    store('relay:settings', globalSettings);
-  }, [globalSettings]);
+useEffect(() => {
+  document.documentElement.dataset.theme = settings.theme;
+  document.documentElement.style.setProperty('--accent', settings.accent);
+}, [settings.theme, settings.accent]);
+useEffect(() => {
+  // Only the global layer reaches relay:settings. A project edit must never land here.
+  store('relay:settings', globalSettings);
+}, [globalSettings]);
 ```
 
-Update the returned object: keep `settings` (now merged), drop `setSettings`, and add `globalSettings`, `overrides: config.overrides`, `updateSettings`, `resetOverride`, `projectScopeAvailable`.
+Update the returned object: keep `settings` (now merged), drop `setSettings`,
+and add `globalSettings`, `overrides: config.overrides`, `updateSettings`,
+`resetOverride`, `projectScopeAvailable`.
 
 - [ ] **Step 4: Update the other caller**
 
-In `src/app/components/TerminalPanel.tsx:37-41`, replace the `setSettings` updater with the routing API, and change the hook's `Pick` contract from `'setSettings'` to `'updateSettings'`:
+In `src/app/components/TerminalPanel.tsx:37-41`, replace the `setSettings`
+updater with the routing API, and change the hook's `Pick` contract from
+`'setSettings'` to `'updateSettings'`:
 
 ```ts
-  const handleFullWidthTerminalPanelClick = () =>
-    updateSettings({
-      terminalPlacement: settings.terminalPlacement === 'workspace' ? 'editor' : 'workspace',
-    });
+const handleFullWidthTerminalPanelClick = () =>
+  updateSettings({
+    terminalPlacement:
+      settings.terminalPlacement === 'workspace' ? 'editor' : 'workspace',
+  });
 ```
 
 - [ ] **Step 5: Verify nothing else calls the removed setter**
 
-Run: `grep -rn "setSettings" src/`
-Expected: no matches. Any remaining call site must be converted to `updateSettings` before continuing.
+Run: `grep -rn "setSettings" src/` Expected: no matches. Any remaining call site
+must be converted to `updateSettings` before continuing.
 
 - [ ] **Step 6: Type-check and test**
 
-Run: `bun run type-check && bun run test:unit && bun run lint:check && bun run code-size:check`
-Expected: PASS. `code-size:check` confirms `useWorkspaceState.ts` is still under 500 lines; if it is not, move the block from Step 2 into `useProjectConfig.ts`.
+Run:
+`bun run type-check && bun run test:unit && bun run lint:check && bun run code-size:check`
+Expected: PASS. `code-size:check` confirms `useWorkspaceState.ts` is still under
+500 lines; if it is not, move the block from Step 2 into `useProjectConfig.ts`.
 
 - [ ] **Step 7: Commit**
 
@@ -858,34 +966,51 @@ git commit -m "fix: keep project settings separate from global defaults"
 ### Task 5: Move run configurations into the project folder
 
 **Files:**
+
 - Modify: `src/features/runs/hooks/useRunConfigurations.ts:9-31`
 - Modify: `src/app/hooks/useWorkspaceState.ts:68`
 - Test: `tests/unit/project-config.test.ts`
 
 **Interfaces:**
-- Consumes: `config.runs` and `config.setRuns` from Task 4; `restoreRuns` and `emptyRuns` from `src/features/runs/services/runDiscovery.ts`.
-- Produces: unchanged public surface of `useRunConfigurations`; only its storage changes.
+
+- Consumes: `config.runs` and `config.setRuns` from Task 4; `restoreRuns` and
+  `emptyRuns` from `src/features/runs/services/runDiscovery.ts`.
+- Produces: unchanged public surface of `useRunConfigurations`; only its storage
+  changes.
 
 - [ ] **Step 1: Write the failing migration test**
 
 Append to `tests/unit/project-config.test.ts`:
 
-Note the existing signature before writing this: `restoreRuns(saved: unknown, legacy: unknown)`
-takes a `RunPreferences`-shaped record as `saved` and an **array of run configs** as
-`legacy` — the two distinct old keys. The migration helper keeps that arity and only
-chooses which source supplies `saved`.
+Note the existing signature before writing this:
+`restoreRuns(saved: unknown, legacy: unknown)` takes a `RunPreferences`-shaped
+record as `saved` and an **array of run configs** as `legacy` — the two distinct
+old keys. The migration helper keeps that arity and only chooses which source
+supplies `saved`.
 
 ```ts
 import { migrateStoredRuns } from '../../src/features/runs/services/runDiscovery';
 
 describe('migrating run preferences into the project folder', () => {
-  const preferences = { version: 1, custom: [], selected: 'dev', runner: 'bun', recent: [] };
+  const preferences = {
+    version: 1,
+    custom: [],
+    selected: 'dev',
+    runner: 'bun',
+    recent: [],
+  };
   it('adopts legacy localStorage preferences when the project has no runs section', () => {
     expect(migrateStoredRuns(undefined, preferences, []).selected).toBe('dev');
     expect(migrateStoredRuns(undefined, preferences, []).runner).toBe('bun');
   });
   it('prefers the project folder once it holds a runs section', () => {
-    const stored = { version: 1, custom: [], selected: 'build', runner: 'auto', recent: [] };
+    const stored = {
+      version: 1,
+      custom: [],
+      selected: 'build',
+      runner: 'auto',
+      recent: [],
+    };
     expect(migrateStoredRuns(stored, preferences, []).selected).toBe('build');
   });
   it('falls back to empty preferences when no source is usable', () => {
@@ -897,8 +1022,8 @@ describe('migrating run preferences into the project folder', () => {
 
 - [ ] **Step 2: Run it to verify it fails**
 
-Run: `bun run test:unit -- project-config`
-Expected: FAIL — `migrateStoredRuns` is not exported.
+Run: `bun run test:unit -- project-config` Expected: FAIL — `migrateStoredRuns`
+is not exported.
 
 - [ ] **Step 3: Add the migration helper**
 
@@ -915,7 +1040,8 @@ export const migrateStoredRuns = (
 
 - [ ] **Step 4: Read and write runs through the project config**
 
-In `src/features/runs/hooks/useRunConfigurations.ts`, widen the signature to accept the config slice, replace the load effect, and replace the save effect:
+In `src/features/runs/hooks/useRunConfigurations.ts`, widen the signature to
+accept the config slice, replace the load effect, and replace the save effect:
 
 ```ts
 export function useRunConfigurations(
@@ -928,40 +1054,43 @@ export function useRunConfigurations(
 ```
 
 ```ts
-  useEffect(() => {
-    if (!root || !ready) return;
-    setState({
-      root,
-      prefs: migrateStoredRuns(
-        runs,
-        readStored(`relay:run-preferences:${root}`, null),
-        readStored(`relay:runs:${root}`, [])
-      ),
-    });
-  }, [root, ready, runs]);
-  useEffect(() => {
-    if (root && active && ready) setRuns(prefs);
-  }, [root, active, ready, prefs, setRuns]);
+useEffect(() => {
+  if (!root || !ready) return;
+  setState({
+    root,
+    prefs: migrateStoredRuns(
+      runs,
+      readStored(`relay:run-preferences:${root}`, null),
+      readStored(`relay:runs:${root}`, [])
+    ),
+  });
+}, [root, ready, runs]);
+useEffect(() => {
+  if (root && active && ready) setRuns(prefs);
+}, [root, active, ready, prefs, setRuns]);
 ```
 
-Import `migrateStoredRuns` alongside the existing `runDiscovery` imports. Leave the `relay:run-preferences:${root}` read in place: `AGENTS.md` requires the old keys to survive one release, and nothing writes them any more.
+Import `migrateStoredRuns` alongside the existing `runDiscovery` imports. Leave
+the `relay:run-preferences:${root}` read in place: `AGENTS.md` requires the old
+keys to survive one release, and nothing writes them any more.
 
 In `src/app/hooks/useWorkspaceState.ts:68`, pass the new arguments:
 
 ```ts
-  const runs = useRunConfigurations(
-    project,
-    settings.detectRunScripts,
-    config.runs,
-    config.setRuns,
-    config.ready
-  );
+const runs = useRunConfigurations(
+  project,
+  settings.detectRunScripts,
+  config.runs,
+  config.setRuns,
+  config.ready
+);
 ```
 
 - [ ] **Step 5: Run the tests**
 
-Run: `bun run test:unit && bun run type-check && bun run lint:check`
-Expected: PASS, including the existing `tests/unit/runs.test.ts` and `discover-project-runs.test.ts`.
+Run: `bun run test:unit && bun run type-check && bun run lint:check` Expected:
+PASS, including the existing `tests/unit/runs.test.ts` and
+`discover-project-runs.test.ts`.
 
 - [ ] **Step 6: Commit**
 
@@ -975,14 +1104,20 @@ git commit -m "feat: store run configurations with the project"
 ### Task 6: Scope selector in the settings panel
 
 **Files:**
+
 - Create: `src/features/settings/components/SettingsScope.tsx`
 - Modify: `src/features/settings/components/Settings.tsx`
 - Modify: `src/App.tsx:87`
-- Modify: `src/styles/` — add rules to the stylesheet that already owns dialog and settings rules
+- Modify: `src/styles/` — add rules to the stylesheet that already owns dialog
+  and settings rules
 
 **Interfaces:**
-- Consumes: `updateSettings`, `resetOverride`, `overrides`, `projectScopeAvailable` from Task 4.
-- Produces: `Settings` props `{ settings, overrides, scope, onScopeChange, onChange, onReset, projectScopeAvailable, projectName, onClose }` where `onChange: (change: SettingsOverrides) => void`.
+
+- Consumes: `updateSettings`, `resetOverride`, `overrides`,
+  `projectScopeAvailable` from Task 4.
+- Produces: `Settings` props
+  `{ settings, overrides, scope, onScopeChange, onChange, onReset, projectScopeAvailable, projectName, onClose }`
+  where `onChange: (change: SettingsOverrides) => void`.
 
 - [ ] **Step 1: Write the scope primitives**
 
@@ -1042,7 +1177,11 @@ export function OverrideMarker({
   const handleResetClick = () => onReset(field);
   if (scope !== 'project' || !(field in overrides)) return null;
   return (
-    <button type='button' className='override-marker' onClick={handleResetClick}>
+    <button
+      type='button'
+      className='override-marker'
+      onClick={handleResetClick}
+    >
       Overridden · Reset to global
     </button>
   );
@@ -1053,40 +1192,55 @@ export function OverrideMarker({
 
 In `src/features/settings/components/Settings.tsx`:
 
-- Change the prop type to `onChange: (change: SettingsOverrides) => void` and replace the body of `update` with `const update = (change: SettingsOverrides) => onChange(change);`. Every existing `handleChange*` already calls `update` with a single key, so none of them change.
-- Replace `handleChangeClick` (the reset control) so it clears rather than assigns defaults: in project scope call `onResetAll()`, in global scope call `onChange(defaults)`.
+- Change the prop type to `onChange: (change: SettingsOverrides) => void` and
+  replace the body of `update` with
+  `const update = (change: SettingsOverrides) => onChange(change);`. Every
+  existing `handleChange*` already calls `update` with a single key, so none of
+  them change.
+- Replace `handleChangeClick` (the reset control) so it clears rather than
+  assigns defaults: in project scope call `onResetAll()`, in global scope call
+  `onChange(defaults)`.
 - Render `<ScopeSelector …/>` directly under the `dialog-description` paragraph.
-- Render `<OverrideMarker field='accent' …/>` beside the accent row, and the same for `theme`, `fontSize`, `terminalFontSize`, `wordWrap`, `showHidden`, `shell`, `scrollback`, `detectRunScripts`.
-- Keep the `reopenLastProject` row rendered only when `scope === 'global'`, since it cannot be overridden.
+- Render `<OverrideMarker field='accent' …/>` beside the accent row, and the
+  same for `theme`, `fontSize`, `terminalFontSize`, `wordWrap`, `showHidden`,
+  `shell`, `scrollback`, `detectRunScripts`.
+- Keep the `reopenLastProject` row rendered only when `scope === 'global'`,
+  since it cannot be overridden.
 
 - [ ] **Step 3: Wire the panel**
 
-In `src/App.tsx:87`, replace the render with the full prop set, taking `scope` from a new `useState<SettingsScope>('project')` in `App` that is forced to `'global'` whenever `projectScopeAvailable` is false:
+In `src/App.tsx:87`, replace the render with the full prop set, taking `scope`
+from a new `useState<SettingsScope>('project')` in `App` that is forced to
+`'global'` whenever `projectScopeAvailable` is false:
 
 ```tsx
-        <Settings
-          settings={settings}
-          overrides={overrides}
-          scope={projectScopeAvailable ? scope : 'global'}
-          onScopeChange={setScope}
-          projectScopeAvailable={projectScopeAvailable}
-          projectName={project?.name ?? ''}
-          onChange={handleSettingsChange}
-          onReset={resetOverride}
-          onClose={handleSettingsOpenClose}
-        />
+<Settings
+  settings={settings}
+  overrides={overrides}
+  scope={projectScopeAvailable ? scope : 'global'}
+  onScopeChange={setScope}
+  projectScopeAvailable={projectScopeAvailable}
+  projectName={project?.name ?? ''}
+  onChange={handleSettingsChange}
+  onReset={resetOverride}
+  onClose={handleSettingsOpenClose}
+/>
 ```
 
-where `const handleSettingsChange = (change: SettingsOverrides) => updateSettings(change, projectScopeAvailable ? scope : 'global');`
+where
+`const handleSettingsChange = (change: SettingsOverrides) => updateSettings(change, projectScopeAvailable ? scope : 'global');`
 
 - [ ] **Step 4: Add the styles**
 
-Find the stylesheet that already defines `.settings-section` and `.setting-row` (`grep -rln "settings-section" src/styles/`) and add `.settings-scope` and `.override-marker` rules there, following the surrounding conventions. Do not create a new stylesheet; `src/styles/styles.css` controls ordering.
+Find the stylesheet that already defines `.settings-section` and `.setting-row`
+(`grep -rln "settings-section" src/styles/`) and add `.settings-scope` and
+`.override-marker` rules there, following the surrounding conventions. Do not
+create a new stylesheet; `src/styles/styles.css` controls ordering.
 
 - [ ] **Step 5: Verify**
 
-Run: `bun run check && bun run test:unit`
-Expected: PASS, including `code-size:check` for `Settings.tsx` under 500 lines.
+Run: `bun run check && bun run test:unit` Expected: PASS, including
+`code-size:check` for `Settings.tsx` under 500 lines.
 
 - [ ] **Step 6: Commit**
 
@@ -1100,38 +1254,52 @@ git commit -m "feat: choose between project and global settings scope"
 ### Task 7: End-to-end proof and documentation
 
 **Files:**
+
 - Create: `tests/e2e/project-config.spec.ts`
 - Modify: `CHANGELOG.md`
 - Modify: `docs/USAGE.md`
 
 **Interfaces:**
+
 - Consumes: everything above.
 - Produces: no new interfaces.
 
 - [ ] **Step 1: Write the end-to-end test**
 
-Read `tests/e2e/terminal-titles.spec.ts` first and copy its fixture and selector conventions exactly. Create `tests/e2e/project-config.spec.ts` covering, in the browser-preview build:
+Read `tests/e2e/terminal-titles.spec.ts` first and copy its fixture and selector
+conventions exactly. Create `tests/e2e/project-config.spec.ts` covering, in the
+browser-preview build:
 
-1. Open the settings panel, confirm the scope selector defaults to "This project".
-2. Set the accent to `#e8dd7a`, close and reopen the panel, confirm the accent persisted and the accent row shows the override marker.
-3. Confirm `localStorage['relay:settings']` does not contain `#e8dd7a` — the project edit must not have touched the global layer.
-4. Click "Reset to global" and confirm the accent returns to the global value and the marker disappears.
-5. Reload the page and confirm the override is restored from storage rather than reset.
+1. Open the settings panel, confirm the scope selector defaults to "This
+   project".
+2. Set the accent to `#e8dd7a`, close and reopen the panel, confirm the accent
+   persisted and the accent row shows the override marker.
+3. Confirm `localStorage['relay:settings']` does not contain `#e8dd7a` — the
+   project edit must not have touched the global layer.
+4. Click "Reset to global" and confirm the accent returns to the global value
+   and the marker disappears.
+5. Reload the page and confirm the override is restored from storage rather than
+   reset.
 
 - [ ] **Step 2: Run the end-to-end test**
 
-Run: `bun run test:e2e`
-Expected: PASS. It builds first, so it is slow; run it once here rather than per step.
+Run: `bun run test:e2e` Expected: PASS. It builds first, so it is slow; run it
+once here rather than per step.
 
 - [ ] **Step 3: Document the feature**
 
-Add a `CHANGELOG.md` entry under the unreleased heading, matching the surrounding style:
+Add a `CHANGELOG.md` entry under the unreleased heading, matching the
+surrounding style:
 
 ```markdown
-- Project settings are stored in a gitignored `.emdeck/` folder, so each project keeps its own accent, theme, layout and run configurations across restarts. Settings you have not overridden still follow your global defaults.
+- Project settings are stored in a gitignored `.emdeck/` folder, so each project
+  keeps its own accent, theme, layout and run configurations across restarts.
+  Settings you have not overridden still follow your global defaults.
 ```
 
-Add a short section to `docs/USAGE.md` explaining the scope selector, where the file lives, that `.emdeck/.gitignore` keeps it out of Git, and that deleting the folder restores global defaults.
+Add a short section to `docs/USAGE.md` explaining the scope selector, where the
+file lives, that `.emdeck/.gitignore` keeps it out of Git, and that deleting the
+folder restores global defaults.
 
 - [ ] **Step 4: Run the full verification**
 
@@ -1160,11 +1328,13 @@ git commit -m "test: cover per-project settings end to end"
 
 ## Manual verification
 
-Before opening the pull request, confirm the original report is fixed in the real desktop app:
+Before opening the pull request, confirm the original report is fixed in the
+real desktop app:
 
 1. `bun run desktop`, open `repo5`, set the accent to yellow.
 2. Open `repo6` and set the accent to blue. Confirm `repo5` is unaffected.
 3. Quit the app completely and relaunch it.
 4. Open `repo5`: it is yellow. Open `repo6`: it is blue.
-5. In both, run `git status` and confirm the tree is clean and `.emdeck/` is absent from the output.
+5. In both, run `git status` and confirm the tree is clean and `.emdeck/` is
+   absent from the output.
 6. Open a project you never customised and confirm it uses the global defaults.

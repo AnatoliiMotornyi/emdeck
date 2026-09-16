@@ -1,7 +1,6 @@
 # Per-project configuration design
 
-Date: 2026-09-16
-Status: Approved for implementation
+Date: 2026-09-16 Status: Approved for implementation
 
 ## Problem
 
@@ -37,10 +36,10 @@ the project.
 
 ## Non-goals
 
-- Agent, session and remote-terminal preferences stay global. Those six
-  `relay:` keys describe how a person works rather than what a project is, and
-  the remote profiles in `src/shared/contracts/remote.ts` carry machine-specific
-  hosts that do not belong in a repository folder.
+- Agent, session and remote-terminal preferences stay global. Those six `relay:`
+  keys describe how a person works rather than what a project is, and the remote
+  profiles in `src/shared/contracts/remote.ts` carry machine-specific hosts that
+  do not belong in a repository folder.
 - No file watching. A project reloads its configuration when it opens.
 - No sharing of configuration between machines. The folder is deliberately
   ignored by Git.
@@ -55,12 +54,12 @@ Each project gets an `.emdeck/` folder at its root holding two files.
 *
 ```
 
-That pattern ignores every file in the folder including the `.gitignore`
-itself, so the directory never appears in `git status` and no tracked file is
-modified. JetBrains uses the same mechanism for `.idea/.gitignore`. Appending
-`.emdeck/` to the repository's own `.gitignore` was rejected because it dirties
-a tracked file, and `.git/info/exclude` was rejected because Emdeck opens
-folders that are not Git repositories.
+That pattern ignores every file in the folder including the `.gitignore` itself,
+so the directory never appears in `git status` and no tracked file is modified.
+JetBrains uses the same mechanism for `.idea/.gitignore`. Appending `.emdeck/`
+to the repository's own `.gitignore` was rejected because it dirties a tracked
+file, and `.git/info/exclude` was rejected because Emdeck opens folders that are
+not Git repositories.
 
 `.emdeck/settings.json` holds the overrides:
 
@@ -103,20 +102,21 @@ read before any project is open, so a project-scoped value could never apply.
 Module ownership follows `docs/ARCHITECTURE.md`: domain services stay free of
 React, Tauri and browser storage, and features never import one another.
 
-| Layer | File | Responsibility |
-| --- | --- | --- |
-| Contract | `src/shared/contracts/projectConfig.ts` | `ProjectConfig`, `SettingsOverrides`, `WorkspaceOverrides` |
-| Contract | `src/shared/contracts/desktop.ts` | register `read_project_config`, `write_project_config` |
-| Service | `src/features/settings/services/projectConfig.ts` | `parseProjectConfig`, `serialiseProjectConfig`, `mergeSettings`, `diffOverrides` — pure, no IO |
-| Port | `src/platform/desktop/api.ts` | `readProjectConfig(root)`, `writeProjectConfig(root, content)` |
-| Preview | `src/platform/preview/demo.ts` | browser-mode adapter for both commands |
-| Native | `src-tauri/src/services/project_config.rs` | folder creation, `.gitignore` seeding, atomic write |
-| Native | `src-tauri/src/commands/projects.rs` | two thin authorised commands |
-| Hook | `src/app/hooks/useProjectConfig.ts` | load on open, debounce writes, expose merged settings |
+| Layer    | File                                              | Responsibility                                                                                 |
+| -------- | ------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Contract | `src/shared/contracts/projectConfig.ts`           | `ProjectConfig`, `SettingsOverrides`, `WorkspaceOverrides`                                     |
+| Contract | `src/shared/contracts/desktop.ts`                 | register `read_project_config`, `write_project_config`                                         |
+| Service  | `src/features/settings/services/projectConfig.ts` | `parseProjectConfig`, `serialiseProjectConfig`, `mergeSettings`, `diffOverrides` — pure, no IO |
+| Port     | `src/platform/desktop/api.ts`                     | `readProjectConfig(root)`, `writeProjectConfig(root, content)`                                 |
+| Preview  | `src/platform/preview/demo.ts`                    | browser-mode adapter for both commands                                                         |
+| Native   | `src-tauri/src/services/project_config.rs`        | folder creation, `.gitignore` seeding, atomic write                                            |
+| Native   | `src-tauri/src/commands/projects.rs`              | two thin authorised commands                                                                   |
+| Hook     | `src/app/hooks/useProjectConfig.ts`               | load on open, debounce writes, expose merged settings                                          |
 
 `SettingsOverrides` is `Partial<Omit<Settings, 'reopenLastProject'>>`.
-`WorkspaceOverrides` is `Partial<{ layout: Layout; sidebarWidth: number;
-terminalHeight: number }>`, covering the three keys in the workspace bucket.
+`WorkspaceOverrides` is
+`Partial<{ layout: Layout; sidebarWidth: number; terminalHeight: number }>`,
+covering the three keys in the workspace bucket.
 
 `src/features/settings/` gains a `services/` directory. That mirrors
 `features/agents/` and `features/editor/`, which already hold pure domain logic
@@ -126,8 +126,8 @@ in `services/` beside simpler loaders in `lib/`.
 
 `save_file` requires a `revision` argument for the editor's optimistic
 concurrency check and returns a `Document`. This path needs neither, and does
-need directory creation and `.gitignore` seeding. Two small commands are
-thinner than bending the editor path around a fabricated revision.
+need directory creation and `.gitignore` seeding. Two small commands are thinner
+than bending the editor path around a fabricated revision.
 
 Both commands resolve the project through
 `projects.root(window.label(), &root)?`, the same per-window authorisation every
@@ -147,9 +147,9 @@ lifecycle goes in `useProjectConfig`, which `useWorkspaceState` consumes.
 
 ## State separation
 
-The overwrite bug is prevented structurally rather than by care. Global
-settings and project overrides are two state variables that are merged for
-reading and never merged for writing:
+The overwrite bug is prevented structurally rather than by care. Global settings
+and project overrides are two state variables that are merged for reading and
+never merged for writing:
 
 - `globalSettings` persists to `relay:settings`, exactly as today.
 - `projectOverrides` persists to `.emdeck/settings.json`.
@@ -227,7 +227,7 @@ carries an explicit migration.
 
 ## Verification
 
-`bun run verify`, plus
-`cargo fmt --manifest-path src-tauri/Cargo.toml --check` and
+`bun run verify`, plus `cargo fmt --manifest-path src-tauri/Cargo.toml --check`
+and
 `cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --locked -- -D warnings`,
 as `AGENTS.md` requires before finishing.
