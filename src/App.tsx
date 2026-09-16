@@ -37,7 +37,8 @@ export default function App() {
     setPalette,
     setPaletteQuery,
     settings,
-    setSettings,
+    globalSettings,
+    setGlobalSettings,
     setSettingsOpen,
     setHelpOpen,
     terminalFull,
@@ -84,7 +85,13 @@ export default function App() {
 
       <ExplorerContextMenu model={model} />
       {settingsOpen && (
-        <Settings settings={settings} onChange={setSettings} onClose={handleSettingsOpenClose} />
+        // The panel edits the global layer until its scope selector lands, so it
+        // reads and writes globalSettings rather than the merged value.
+        <Settings
+          settings={globalSettings}
+          onChange={setGlobalSettings}
+          onClose={handleSettingsOpenClose}
+        />
       )}
       <WorkspaceConflicts model={model} />
       {dialog && <Dialog spec={dialog} onClose={handleDialogClose} />}

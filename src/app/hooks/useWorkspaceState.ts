@@ -1,9 +1,15 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { loadAgentPreferences } from '../../features/agents/lib/agents';
 import { useRunConfigurations } from '../../features/runs/hooks/useRunConfigurations';
 import { loadSettings } from '../../features/settings/lib/settings';
+import {
+  mergeSettings,
+  withOverride,
+  withoutOverride,
+} from '../../features/settings/services/projectConfig';
 import { readStored, store } from '../../platform/storage/preferences';
 import type { DialogSpec } from '../../shared/contracts/dialog';
+import type { SettingsOverrides } from '../../shared/contracts/projectConfig';
 import type {
   AgentObservation,
   AgentUsage,
@@ -17,13 +23,53 @@ import type {
   Project,
 } from '../../shared/contracts/workspace';
 import { useLatest } from '../../shared/hooks/useLatest';
+import { useProjectConfig } from './useProjectConfig';
 export function useWorkspaceState() {
   const [project, setProject] = useState<Project | null>(null);
   const [directories, setDirectories] = useState<Record<string, Entry[]>>({});
   const [expanded, setExpanded] = useState(new Set<string>());
   const [files, setFiles] = useState<OpenFile[]>([]);
   const [active, setActive] = useState('');
-  const [settings, setSettings] = useState(loadSettings);
+  // The toast machinery is declared here rather than beside the other callbacks
+  // because `fail` is what `useProjectConfig` reports load and write errors
+  // through, and the merged settings below are read by hooks further down.
+  const [toast, setToast] = useState<{
+    text: string;
+    error: boolean;
+  } | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const notify = useCallback((text: string, error = false) => {
+    clearTimeout(toastTimer.current);
+    setToast({ text, error });
+    toastTimer.current = setTimeout(() => setToast(null), error ? 14000 : 4500);
+  }, []);
+  const fail = useCallback(
+    (e: unknown) => notify(String(e).replace(/^Error: /, ''), true),
+    [notify]
+  );
+  const [globalSettings, setGlobalSettings] = useState(loadSettings);
+  const config = useProjectConfig(project, fail);
+  // Memoised so the merged value keeps a stable identity between renders: the
+  // editor and terminals reconfigure themselves when it changes.
+  const overrides = config.overrides;
+  const settings = useMemo(
+    () => mergeSettings(globalSettings, overrides),
+    [globalSettings, overrides]
+  );
+  const projectScopeAvailable = Boolean(project);
+  const updateSettings = useCallback(
+    (change: SettingsOverrides, scope: 'project' | 'global' = 'project') => {
+      if (scope === 'project' && projectScopeAvailable)
+        config.setOverrides(previous => withOverride(previous, change));
+      else setGlobalSettings(previous => ({ ...previous, ...change }));
+    },
+    [config, projectScopeAvailable]
+  );
+  const resetOverride = useCallback(
+    (key: keyof SettingsOverrides) =>
+      config.setOverrides(previous => withoutOverride(previous, key)),
+    [config]
+  );
   const [sidebar, setSidebar] = useState<'files' | 'git'>('files');
   const [sidebarVisible, setSidebarVisible] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -80,10 +126,6 @@ export function useWorkspaceState() {
     root: string;
     path: string;
   } | null>(null);
-  const [toast, setToast] = useState<{
-    text: string;
-    error: boolean;
-  } | null>(null);
   const [diffTabs, setDiffTabs] = useState<DiffTab[]>([]);
   const [activeDiffId, setActiveDiffId] = useState<string | null>(null);
   const [worktreesOpen, setWorktreesOpen] = useState(false);
@@ -105,18 +147,8 @@ export function useWorkspaceState() {
   const latest = useLatest({ project, files, panes, expanded, settings });
 
   const gitLock = useRef(false),
-    opening = useRef(false),
-    toastTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+    opening = useRef(false);
   const file = files.find(f => f.path === active);
-  const notify = useCallback((text: string, error = false) => {
-    clearTimeout(toastTimer.current);
-    setToast({ text, error });
-    toastTimer.current = setTimeout(() => setToast(null), error ? 14000 : 4500);
-  }, []);
-  const fail = useCallback(
-    (e: unknown) => notify(String(e).replace(/^Error: /, ''), true),
-    [notify]
-  );
   const ask = useCallback(
     (spec: Omit<DialogSpec, 'resolve'>) =>
       new Promise<Record<string, string> | null>(resolve => {
@@ -141,8 +173,11 @@ export function useWorkspaceState() {
   useEffect(() => {
     document.documentElement.dataset.theme = settings.theme;
     document.documentElement.style.setProperty('--accent', settings.accent);
-    store('relay:settings', settings);
-  }, [settings]);
+  }, [settings.theme, settings.accent]);
+  useEffect(() => {
+    // Only the global layer reaches relay:settings. A project edit must never land here.
+    store('relay:settings', globalSettings);
+  }, [globalSettings]);
   useEffect(() => {
     store('relay:layout', layout);
   }, [layout]);
@@ -169,7 +204,12 @@ export function useWorkspaceState() {
     active,
     setActive,
     settings,
-    setSettings,
+    globalSettings,
+    setGlobalSettings,
+    overrides,
+    updateSettings,
+    resetOverride,
+    projectScopeAvailable,
     sidebar,
     setSidebar,
     sidebarVisible,
