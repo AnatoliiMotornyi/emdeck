@@ -1,6 +1,7 @@
 import { appendFileSync, existsSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { checkChangelog, releaseNotes } from './changelog.mjs';
 import { root } from './tools.mjs';
 
 export const metadata = () => {
@@ -35,8 +36,12 @@ export const metadata = () => {
   const tag = `v${pkg.version}`;
   const requested = process.env.EMDECK_RELEASE_TAG;
   if (requested && requested !== tag) throw new Error(`Tag ${requested} does not match ${tag}`);
-  if (!readFileSync(join(root, 'CHANGELOG.md'), 'utf8').includes(`## ${pkg.version}`))
-    throw new Error('Missing changelog section for this version.');
+  const { changelog, fragments } = checkChangelog(root);
+  releaseNotes(changelog, pkg.version);
+  if (requested && fragments.length)
+    throw new Error(
+      'Release tags must consume pending notes with changelog:release before tagging.'
+    );
   return { version: pkg.version, tag, license: pkg.license };
 };
 

@@ -133,6 +133,8 @@ export interface Settings {
   accent: string;
   fontSize: number;
   terminalFontSize: number;
+  terminalFontFamily: string;
+  terminalLineHeight: number;
   wordWrap: boolean;
   showHidden: boolean;
   shell: string;
@@ -208,4 +210,25 @@ export interface AccountUsage {
   source: string;
   updatedAt: number;
   limits: LimitWindow[];
+}
+export type ShelfEntryKind = 'modified' | 'added' | 'deleted';
+export interface ShelfEntry {
+  path: string;
+  originalPath: string | null;
+  kind: ShelfEntryKind;
+}
+export interface Shelf {
+  id: string;
+  name: string;
+  root: string;
+  createdAt: string;
+  entries: ShelfEntry[];
+}
+export interface ShelfConflict {
+  path: string;
+  reason: string;
+}
+export interface UnshelveReport {
+  applied: string[];
+  conflicts: ShelfConflict[];
 }

@@ -9,6 +9,7 @@ pub(crate) mod markdown;
 pub(crate) mod project_identity;
 pub(crate) mod remote;
 pub(crate) mod sessions;
+pub(crate) mod shelves;
 pub(crate) mod terminal;
 pub(crate) mod workspace;
 pub(crate) mod worktrees;
