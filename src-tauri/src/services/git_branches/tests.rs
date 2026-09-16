@@ -79,6 +79,55 @@ fn fetch_indicators_and_update_another_branch_without_checkout() {
 }
 
 #[test]
+fn sync_refreshes_both_branches_and_merges_without_leaving_the_current_one() {
+    let (_temp, root, remote) = init();
+    run(&root, &["switch", "-c", "agent/task"]).unwrap();
+    write_commit(&root, "task.txt", "task\n", "Task");
+    run(&root, &["push", "-u", "origin", "agent/task"]).unwrap();
+    // Both branches move on the remote while the local caches stay stale, so a
+    // single sync has something to do at every stage.
+    let peer = oid(&root, "HEAD").trim().to_owned();
+    write_commit(&root, "peer.txt", "peer\n", "Peer commit");
+    let peer_tip = oid(&root, "HEAD");
+    run(&root, &["push", &remote, "HEAD:refs/heads/agent/task"]).unwrap();
+    run(&root, &["reset", "--hard", &peer]).unwrap();
+    run(&root, &["switch", "main"]).unwrap();
+    let base = oid(&root, "HEAD").trim().to_owned();
+    write_commit(&root, "shared.txt", "shared\n", "Shared work");
+    let main_tip = oid(&root, "HEAD");
+    run(&root, &["push", &remote, "HEAD:refs/heads/main"]).unwrap();
+    run(&root, &["reset", "--hard", &base]).unwrap();
+    run(&root, &["switch", "agent/task"]).unwrap();
+
+    apply(&root, "sync", "refs/heads/main").unwrap();
+
+    assert_eq!(current(&root).unwrap(), "agent/task");
+    assert_eq!(oid(&root, "refs/heads/main"), main_tip);
+    assert!(root.join("shared.txt").exists(), "main was merged in");
+    assert!(root.join("peer.txt").exists(), "own upstream was pulled");
+    assert!(root.join("task.txt").exists(), "own commits are preserved");
+    let details = branches(&root).unwrap();
+    let task = details
+        .iter()
+        .find(|b| b.reference == "refs/heads/agent/task")
+        .unwrap();
+    assert_eq!(task.behind, Some(0));
+    assert_ne!(oid(&root, "HEAD"), peer_tip, "the merge created a commit");
+
+    // Repeating the operation is safe and reports that nothing was missing.
+    assert!(apply(&root, "sync", "refs/heads/main")
+        .unwrap()
+        .contains("up to date"));
+    assert!(apply(&root, "sync", "refs/heads/agent/task")
+        .unwrap_err()
+        .contains("already the current branch"));
+    std::fs::write(root.join("task.txt"), "edited\n").unwrap();
+    let refused = apply(&root, "sync", "refs/heads/main").unwrap_err();
+    assert!(refused.contains("Commit or stash"), "{refused}");
+    assert_eq!(oid(&root, "refs/heads/main"), main_tip, "nothing moved");
+}
+
+#[test]
 fn update_refuses_divergence_and_dirty_current_branch() {
     let (_temp, root, remote) = init();
     run(&root, &["switch", "-c", "remote-change"]).unwrap();

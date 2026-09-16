@@ -82,6 +82,34 @@ test('Git dropdown shows incoming/outgoing counts and fetch runs only on request
     .poll(() => gitCalls(page))
     .toContainEqual(expect.objectContaining({ action: 'update', reference: 'refs/heads/main' }));
 });
+test('the toolbar sync button merges the integration branch into the current one', async ({
+  page,
+}) => {
+  await openBranchFixture(page, 'dima/feature/branch-name');
+  // The fixture leaves the picker open; its dismiss overlay covers the toolbar.
+  await page.locator('.popover-dismiss').click();
+  const sync = page.getByRole('button', { name: 'Update from main', exact: true });
+  await expect(sync).toBeVisible();
+  expect(await gitCalls(page)).toEqual([]);
+
+  await sync.click();
+  await expect
+    .poll(() => gitCalls(page))
+    .toEqual([
+      expect.objectContaining({
+        action: 'sync',
+        reference: 'refs/heads/main',
+        expectedCurrent: 'dima/feature/branch-name',
+      }),
+    ]);
+
+  await openBranchFixture(page, 'main');
+  await page.locator('.popover-dismiss').click();
+  await expect(
+    page.getByRole('button', { name: /^Update from/ }),
+    'a branch cannot be brought up to date with itself'
+  ).toHaveCount(0);
+});
 test('branch action menu supports keyboard, right click and fits a small light window', async ({
   page,
 }) => {
