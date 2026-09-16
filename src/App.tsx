@@ -1,4 +1,5 @@
 import { ChevronRight, Command, Keyboard, Search, TerminalSquare, X } from 'lucide-react';
+import { useState } from 'react';
 import { version } from '../package.json';
 import ActivityBar from './app/components/ActivityBar';
 import EditorPanel from './app/components/EditorPanel';
@@ -11,6 +12,9 @@ import WorkspaceTopbar from './app/components/WorkspaceTopbar';
 import WorkspaceConflicts from './app/components/WorkspaceConflicts';
 import { useWorkspace } from './app/hooks/useWorkspace';
 import Settings from './features/settings/components/Settings';
+import type { SettingsScope } from './features/settings/components/SettingsScope';
+import type { SettingsOverrides } from './shared/contracts/projectConfig';
+import type { Settings as SettingsType } from './shared/contracts/workspace';
 import Dialog, { Modal } from './shared/ui/Dialog';
 import { FileIcon } from './shared/ui/FileIcon';
 const mod = navigator.platform.toLowerCase().includes('mac') ? '⌘' : 'Ctrl';
@@ -27,6 +31,7 @@ export default function App() {
   const handleHelpOpenClick = () => setHelpOpen(false);
   const handleDismissNotificationClick = () => setToast(null);
   const model = useWorkspace();
+  const [chosenScope, setChosenScope] = useState<SettingsScope>('project');
   const {
     context,
     setContext,
@@ -38,7 +43,10 @@ export default function App() {
     setPaletteQuery,
     settings,
     globalSettings,
-    setGlobalSettings,
+    overrides,
+    updateSettings,
+    resetOverride,
+    projectScopeAvailable,
     setSettingsOpen,
     setHelpOpen,
     terminalFull,
@@ -60,6 +68,15 @@ export default function App() {
     toast,
     setToast,
   } = model;
+  // With no project open there is nothing to override, so the panel is pinned
+  // to the global layer however the selector was left last time.
+  const settingsScope: SettingsScope = projectScopeAvailable ? chosenScope : 'global';
+  const handleSettingsChange = (change: Partial<SettingsType>) =>
+    updateSettings(change, settingsScope);
+  const handleSettingsReset = (field: keyof SettingsOverrides) => resetOverride(field);
+  const handleSettingsResetAll = () => {
+    for (const field of Object.keys(overrides) as (keyof SettingsOverrides)[]) resetOverride(field);
+  };
   return (
     <div className='app' onClick={handleContextClick}>
       <WorkspaceTopbar model={model} />
@@ -85,11 +102,18 @@ export default function App() {
 
       <ExplorerContextMenu model={model} />
       {settingsOpen && (
-        // The panel edits the global layer until its scope selector lands, so it
-        // reads and writes globalSettings rather than the merged value.
+        // Global scope shows the layer it edits, not the merged value: a
+        // project override must never be mistaken for the global default.
         <Settings
-          settings={globalSettings}
-          onChange={setGlobalSettings}
+          settings={settingsScope === 'global' ? globalSettings : settings}
+          overrides={overrides}
+          scope={settingsScope}
+          projectScopeAvailable={projectScopeAvailable}
+          projectName={project?.name ?? ''}
+          onScopeChange={setChosenScope}
+          onChange={handleSettingsChange}
+          onReset={handleSettingsReset}
+          onResetAll={handleSettingsResetAll}
           onClose={handleSettingsOpenClose}
         />
       )}
