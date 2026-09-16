@@ -133,6 +133,8 @@ export interface Settings {
   accent: string;
   fontSize: number;
   terminalFontSize: number;
+  terminalFontFamily: string;
+  terminalLineHeight: number;
   wordWrap: boolean;
   showHidden: boolean;
   shell: string;
