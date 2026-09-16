@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { qualifyRef, shortRef } from '../../src/features/git/services/references';
+import { integrationRef, qualifyRef, shortRef } from '../../src/features/git/services/references';
 
 describe('branch reference qualification', () => {
   const local = ['main', 'dev', 'origin/shared', 'dima/feature/branch-name'];
@@ -24,6 +24,15 @@ describe('branch reference qualification', () => {
     expect(qualifyRef('nope', local, remote)).toBeNull();
     expect(qualifyRef('HEAD', local, remote)).toBeNull();
     expect(qualifyRef('main', [], [])).toBeNull();
+  });
+
+  it('picks the integration branch by convention and never the current one', () => {
+    expect(integrationRef('dima/feature/branch-name', local)).toBe('refs/heads/main');
+    expect(integrationRef('feature', ['master', 'dev'])).toBe('refs/heads/master');
+    expect(integrationRef('feature', ['trunk'])).toBe('refs/heads/trunk');
+    expect(integrationRef('main', local), 'nothing to merge into itself').toBeNull();
+    expect(integrationRef('feature', ['dev', 'origin/main']), 'locals only').toBeNull();
+    expect(integrationRef('feature', [])).toBeNull();
   });
 
   it('round-trips with shortRef', () => {

@@ -1,5 +1,16 @@
 # React audit — 0.1.19
 
+## Unreleased — integrate shelving and branch updates from main
+
+React Doctor 0.9.13 reports eight errors and 70 warnings after combining the
+workspace changes with main. Four new errors in `useShelfActions` have the same
+false-positive pattern as Worktrees: callbacks passed to the ordinary async
+`guard` helper are classified as React state updaters. The helper invokes them
+directly, never through a state setter. Its actual selection updater is pure.
+The existing GitPanel complexity advisory reflects the added selection controls;
+the component remains within its size budget. Shelf and branch workflows are
+covered by the integrated test suite. No rules or diagnostics were suppressed.
+
 ## Unreleased — terminal scrollback during resizing
 
 React Doctor 0.9.13 retains the four reviewed Worktrees errors and 70 advisory

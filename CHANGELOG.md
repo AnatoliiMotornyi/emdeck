@@ -18,6 +18,15 @@
   through a second app launch, restores and focuses its existing window while
   preserving unsaved edits and terminals.
 
+- Bring the current branch up to date with `main` from one toolbar button beside
+  the branch selector: both branches are fast-forwarded from their tracked
+  branches, then `main` is merged in. The run is refused before it starts if the
+  working tree is dirty, nothing is stashed, and conflicts open Source Control.
+- Shelve selected changes into a local per-user store, restoring the committed
+  content and clearing the index so the working tree is genuinely clean.
+  Unshelving reports a file that changed in the meantime instead of overwriting
+  it, and keeps that shelf. Shelves never touch the repository and are not
+  pushed anywhere.
 - Stabilize workspace status color tests by waiting for terminal focus after
   selecting a session, then checking sidebar focus through keyboard navigation.
 - Clear Claude's Working state when its foreground turn completes, including
