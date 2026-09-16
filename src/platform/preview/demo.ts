@@ -116,6 +116,12 @@ export async function demoCall<T>(command: string, args: Record<string, unknown>
         commits: [],
       } satisfies GitSnapshot;
       break;
+    case 'read_project_config':
+      result = readStored<string | null>('relay:demo-project-config', null);
+      break;
+    case 'write_project_config':
+      store('relay:demo-project-config', String(args.content ?? ''));
+      break;
     default:
       throw new Error('This feature requires the Emdeck desktop app. Run npm run desktop.');
   }

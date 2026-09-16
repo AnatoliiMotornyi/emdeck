@@ -29,6 +29,9 @@ export const api = {
   openWindow: (path: string) => call('open_project_window', { path }),
   focusProject: (path: string) => call('focus_project_window', { path }),
   startupProject: () => call('startup_project'),
+  readProjectConfig: (root: string) => call('read_project_config', { root }),
+  writeProjectConfig: (root: string, content: string) =>
+    call('write_project_config', { root, content }),
   list: (root: string, path = '') => call('read_directory', { root, path }),
   read: (root: string, path: string) => call('read_file', { root, path }),
   find: (root: string, name: string) => call('find_file', { root, name }),
