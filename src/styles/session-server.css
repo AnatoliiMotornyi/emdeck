@@ -44,10 +44,7 @@
   align-items: center;
   gap: 6px;
 }
-/* Baseline-aligning a fixed-size native checkbox lands differently per engine. */
 .session-options input[type="checkbox"] {
-  width: auto;
-  flex: none;
   margin: 0;
 }
 .session-machine-actions button,

@@ -123,10 +123,35 @@ textarea::placeholder {
   color: var(--muted);
 }
 
+/* Engines draw a native tick at their own metric, not the size set here. */
 input[type="checkbox"] {
-  accent-color: var(--accent-ink);
-  width: 15px;
-  height: 15px;
+  --checkbox-size: 15px;
+  appearance: none;
+  flex: none;
+  padding: 0;
+  width: var(--checkbox-size);
+  min-width: var(--checkbox-size);
+  max-width: var(--checkbox-size);
+  height: var(--checkbox-size);
+  min-height: var(--checkbox-size);
+  max-height: var(--checkbox-size);
+  border-radius: 3px;
+  background: var(--elevated);
+}
+
+/* The tick is centred in its own viewBox, so the engine has no say in where it lands. */
+input[type="checkbox"]:checked {
+  border-color: var(--accent-ink);
+  background: var(--accent-ink) var(--checkmark) center / 68% no-repeat;
+}
+
+input[type="checkbox"]:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 1px;
+}
+
+input[type="checkbox"]:disabled {
+  opacity: 0.55;
 }
 
 input[type="number"] {
