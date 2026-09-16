@@ -6,6 +6,7 @@ pub(crate) mod git_branches;
 pub(crate) mod git_conflicts;
 pub(crate) mod git_discard;
 pub(crate) mod markdown;
+pub(crate) mod project_config;
 pub(crate) mod project_identity;
 pub(crate) mod remote;
 pub(crate) mod sessions;
