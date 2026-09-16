@@ -60,13 +60,25 @@
   display: flex;
 }
 
-.pane-header strong {
+.pane-header strong,
+.pane-header .pane-title {
   font-size: 10px;
   font-weight: 550;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+/* The title reads as a label until pointed at, so the pane header keeps its
+   quiet look while still advertising that the name is editable. */
+.pane-header .pane-title {
+  color: inherit;
+  padding: 2px 4px;
+  margin-left: -4px;
+  border-radius: 3px;
+}
+.pane-header .pane-title:hover {
+  background: var(--hover);
 }
 
 .terminal-pane[data-attachment-drop="true"] {

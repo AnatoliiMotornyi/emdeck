@@ -30,6 +30,7 @@ interface Props {
   maximized: boolean;
   onMaximize: () => void;
   onClose: () => void;
+  onRename: () => void;
   onRestart: () => void;
   onState: (id: string, state: PaneState) => void;
   onTitle: (id: string, title: string) => void;
@@ -49,6 +50,7 @@ export default function TerminalPane({
   maximized,
   onMaximize,
   onClose,
+  onRename,
   onRestart,
   onState,
   onTitle,
@@ -350,7 +352,16 @@ export default function TerminalPane({
         <span className='pane-icon' style={{ color: pane.color }}>
           <TerminalSquare size={13} />
         </span>
-        <strong title={paneName(pane)}>{paneName(pane)}</strong>
+        {/* The name is distinct from the Agents overview's "Rename <name>"
+            button: two controls must not answer to one accessible name. */}
+        <button
+          className='pane-title'
+          title={`Rename ${paneName(pane)} terminal`}
+          aria-label={`Rename ${paneName(pane)} terminal`}
+          onClick={onRename}
+        >
+          {paneName(pane)}
+        </button>
         <span
           className={`pane-state ${state}`}
           title='Agent activity is detected from the live terminal screen. Connected and Output describe the terminal connection only.'

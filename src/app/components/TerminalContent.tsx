@@ -109,6 +109,7 @@ export default function TerminalContent({
         setMaxPane(value => (value === pane.id ? null : pane.id));
       };
       const handleClose = () => void closePane(pane);
+      const handlePaneRename = () => void renameAgent(pane);
       const handleRestart = () => restartAgent(pane);
       const handleFocus = () => {
         setSelectedPane(pane.id);
@@ -126,6 +127,7 @@ export default function TerminalContent({
               maximized={maxPane === pane.id}
               onMaximize={handleMaximize}
               onClose={handleClose}
+              onRename={handlePaneRename}
               onRestart={handleRestart}
               onState={paneState}
               onTitle={updateTerminalTitle}
@@ -250,12 +252,15 @@ export default function TerminalContent({
             </button>
             {workspace.visiblePanes.map(pane => {
               const handleSelect = () => workspace.selectPane(pane);
+              const handleRenameTab = () => void renameAgent(pane);
               return (
                 <button
                   key={pane.id}
                   className={maxPane === pane.id ? 'active' : ''}
                   aria-pressed={maxPane === pane.id}
+                  title={`${paneName(pane)} — double-click to rename`}
                   onClick={handleSelect}
+                  onDoubleClick={handleRenameTab}
                 >
                   <i style={{ background: pane.color }} />
                   {paneName(pane)}

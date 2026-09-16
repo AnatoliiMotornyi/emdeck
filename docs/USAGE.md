@@ -134,6 +134,11 @@ name/launch order/attention, focus a pane, maximize it, rename it, close it, or
 restart an exited session. Focusing, filtering, renaming, hiding the overview,
 and changing details preserve running terminals.
 
+You can also name a terminal without opening that overview: click its title in
+the pane header, or double-click its tab in the **Workspaces** view. A name you
+set is fixed and keeps overriding the title the agent reports; clear it to
+follow that title again. Names are per session and never restart it.
+
 Pane headers, agent cards and workspace tabs follow titles reported by the
 terminal, such as Claude's current task name. A custom launch name or a name set
 with **Rename session** takes priority. Clear the name in that dialog to return
