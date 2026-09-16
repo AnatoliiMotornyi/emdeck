@@ -7,6 +7,7 @@ mod private;
 mod process;
 pub use process::killer as child_killer;
 pub mod protocol;
+pub mod remote;
 mod screen;
 pub mod server;
 pub mod ssh;

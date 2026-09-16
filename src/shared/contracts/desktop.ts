@@ -22,6 +22,8 @@ type Repository = { root: string };
 
 /** Public IPC payloads. Window identity and authorization are injected by Tauri. */
 export interface DesktopCommands {
+  session_pair: Command<{ code: string; name: string }, { credential: string; address: string }>;
+  session_forget: Command<{ credential: string }, void>;
   session_connect: Command<{ target: MachineTarget }, string>;
   session_request: Command<{ connection: string; action: SessionAction }, unknown>;
   session_disconnect: Command<{ connection: string }, void>;

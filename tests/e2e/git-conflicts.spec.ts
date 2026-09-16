@@ -62,7 +62,7 @@ test('manual merge edits live inside the modal and all blocks must be resolved b
 });
 
 test('merge choices made while the editor loads appear when it becomes ready', async ({ page }) => {
-  const editorChunk = /\/assets\/Editor-[^/]+\.js$/;
+  const editorChunk = /\/assets\/MergeCodePane-[^/]+\.js$/;
   let releaseEditor = () => {};
   const editorGate = new Promise<void>(resolve => {
     releaseEditor = resolve;
@@ -73,8 +73,8 @@ test('merge choices made while the editor loads appear when it becomes ready', a
   });
   try {
     await prepareConflicts(page);
-    const dialog = await openResolver(page);
     const requested = page.waitForRequest(editorChunk);
+    const dialog = await openResolver(page);
     await dialog.getByRole('button', { name: 'Merge manually', exact: true }).click();
     await requested;
     const result = dialog.getByRole('region', { name: 'Merged result', exact: true });

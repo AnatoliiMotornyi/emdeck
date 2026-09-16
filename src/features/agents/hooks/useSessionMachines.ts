@@ -97,7 +97,10 @@ export const useSessionMachines = (active: boolean) => {
   }, []);
   const save = (profile: MachineProfile) =>
     setProfiles(previous => [...previous.filter(p => p.id !== profile.id), profile]);
-  const remove = (id: string) => {
+  const remove = async (id: string) => {
+    const profile = profiles.find(p => p.id === id);
+    if (profile?.target.kind === 'direct')
+      await call('session_forget', { credential: profile.target.credential });
     disconnect(id);
     setProfiles(previous => previous.filter(p => p.id !== id || p.id === 'local'));
   };

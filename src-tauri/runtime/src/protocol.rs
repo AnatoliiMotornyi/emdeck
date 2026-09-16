@@ -75,6 +75,8 @@ pub struct Snapshot {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(tag = "method", content = "params")]
 pub enum Action {
+    #[serde(rename = "remote.manage")]
+    Remote(crate::remote::Management),
     #[serde(rename = "ping")]
     Ping,
     #[serde(rename = "session.snapshot")]

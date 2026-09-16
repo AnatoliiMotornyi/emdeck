@@ -10,6 +10,8 @@ repository.
 - [neek922](https://github.com/neek922)
 - [ken-at-em](https://github.com/ken-at-em)
 - [mikeyhowk](https://github.com/mikeyhowk)
+- [aerdos](https://github.com/aerdos)
+- [AnatoliiMotornyi](https://github.com/AnatoliiMotornyi)
 
 These maintainers own triage, technical decisions, reviews, merges, and
 releases. `.github/CODEOWNERS` lists them for all paths, including workflows and

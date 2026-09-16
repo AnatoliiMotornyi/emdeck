@@ -46,6 +46,8 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::sessions::session_connect,
+            commands::sessions::session_pair,
+            commands::sessions::session_forget,
             commands::sessions::session_request,
             commands::sessions::session_disconnect,
             commands::projects::open_project,

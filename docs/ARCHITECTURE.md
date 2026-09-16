@@ -90,6 +90,16 @@ standalone server has no Tauri dependency; Windows' embedded fallback runs from
 a private copy so the IDE remains replaceable while agents work. See
 [persistence and automation](PERSISTENT-AGENTS.md).
 
+The runtime's `remote` module owns optional Tailscale-address binding, TLS,
+single-use pairing, revocable device trust and native client credential files.
+Its authenticated transport forwards bounded requests to the existing local
+engine, namespaces input leases by device, and denies remote sharing management.
+Local capability checks precede all host-management actions. The desktop native
+session service resolves opaque pairing IDs and preserves window ownership;
+React receives public machine metadata only. Sharing is opt-in and cannot alter
+firewall settings or install network software. See
+[direct remote connections](TAILSCALE-SESSIONS.md).
+
 Opening a second project defaults to a new native window. Replacement resets
 that window's views only after the existing confirmation flow. Native project
 roots and terminal groups are keyed by the invoking window, not
@@ -157,6 +167,25 @@ imports. Manual drafts survive file selection and failed saves, and participate
 in the native window's unsaved-edit check. Open editor buffers are checked
 before reading and applying a resolution; unsaved tabs must be saved or closed.
 Shared modal keyboard handling belongs only to the topmost dialog.
+
+The merge review shows read-only source panes and an editable result through the
+same typed render slot. The editor feature owns CodeMirror, language loading,
+syntax themes, decorations and undo. The Git service uses CodeMirror's pure diff
+utility with bounded detailed scanning to compare against the common ancestor.
+Marker-free projections locate conflicts in each source without searching for
+potentially repeated block text. Navigation reveals corresponding positions in
+all three panes; the first per-block choice replaces the selected marker range.
+Drafts retain stable block identities and result boundaries after that choice.
+The opposite source then offers replacement or appending below that block,
+without changing surrounding code. CodeMirror records block metadata alongside
+its text history so undo/redo restores both boundaries and available choices.
+Edits crossing a block boundary disable its arrows instead of guessing a new
+replacement range. Reloaded source versions are compared with the draft's
+original sides, preventing undo from re-enabling arrows for outdated versions.
+Non-conflicting edits supplied by Git remain in the initial result. All offsets
+used for presentation are normalized to CodeMirror's LF positions while saved
+drafts retain their original line endings. Review computations run only for the
+selected conflict file; no project scanning is introduced.
 
 Discard actions compose in `useDiscardActions`. The native `git_discard` service
 prepares an explicit tracked-file selection, including both ends of a rename,

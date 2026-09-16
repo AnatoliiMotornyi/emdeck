@@ -46,7 +46,13 @@ fn authenticated(candidate: &str, expected: &str) -> bool {
     }
     difference == 0
 }
-fn connection(mut stream: TcpStream, endpoint: &Endpoint, engine: &Arc<Engine>) -> Result<()> {
+fn connection(
+    mut stream: TcpStream,
+    endpoint: &Endpoint,
+    engine: &Arc<Engine>,
+    remote: &crate::remote::Host,
+) -> Result<()> {
+    stream.set_nonblocking(false).map_err(error)?;
     stream
         .set_read_timeout(Some(Duration::from_secs(5)))
         .map_err(error)?;
@@ -61,7 +67,10 @@ fn connection(mut stream: TcpStream, endpoint: &Endpoint, engine: &Arc<Engine>) 
     } else if request.id.len() > 100 || request.id.is_empty() {
         Err("Invalid request ID.".into())
     } else {
-        engine.execute(request.action)
+        match request.action {
+            Action::Remote(action) => remote.manage(action),
+            action => engine.execute(action),
+        }
     };
     let response = Response {
         version: PROTOCOL,
@@ -86,11 +95,13 @@ pub fn run(home: &Path) -> Result<()> {
         pid: std::process::id(),
     };
     let engine = Engine::load(home, endpoint.server_id.clone())?;
+    let remote = crate::remote::Host::load(home, endpoint.clone())?;
     storage::write_json(&home.join("endpoint.json"), &endpoint)?;
     engine.restore();
     let connections = Arc::new(AtomicUsize::new(0));
     let mut inspected = Instant::now();
     while !engine.stopping.load(Ordering::SeqCst) {
+        remote.accept();
         if inspected.elapsed() >= Duration::from_millis(250) {
             engine.inspect();
             inspected = Instant::now();
@@ -105,8 +116,9 @@ pub fn run(home: &Path) -> Result<()> {
                 let count = connections.clone();
                 let endpoint = endpoint.clone();
                 let engine = engine.clone();
+                let remote = remote.clone();
                 std::thread::spawn(move || {
-                    let _ = connection(stream, &endpoint, &engine);
+                    let _ = connection(stream, &endpoint, &engine, &remote);
                     count.fetch_sub(1, Ordering::Relaxed);
                 });
             }
@@ -114,11 +126,13 @@ pub fn run(home: &Path) -> Result<()> {
                 std::thread::sleep(Duration::from_millis(20))
             }
             Err(e) => {
+                remote.close();
                 engine.shutdown();
                 return Err(error(e));
             }
         }
     }
+    remote.close();
     engine.shutdown();
     // The exclusive server lock is held until this endpoint is removed.
     std::fs::remove_file(home.join("endpoint.json")).map_err(error)?;

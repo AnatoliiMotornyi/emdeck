@@ -12,6 +12,8 @@ import { useSessionMachines } from '../hooks/useSessionMachines';
 import { sessionKey, stateLabel } from '../services/session-model';
 import SessionForms from './SessionForms';
 import SessionTerminal from './SessionTerminal';
+import SessionPairing from './SessionPairing';
+import SessionSharing from './SessionSharing';
 
 interface Props {
   active: boolean;
@@ -102,7 +104,8 @@ export default function SessionDesk({ active, settings, root, projectName, layou
         {controller.machines.map(machine => {
           const handleConnect = () => void controller.connect(machine.profile);
           const handleDisconnect = () => controller.disconnect(machine.profile.id);
-          const handleRemove = () => controller.remove(machine.profile.id);
+          const handleRemove = () =>
+            void controller.remove(machine.profile.id).catch(e => setError(String(e)));
           return (
             <section className='session-machine' key={machine.profile.id}>
               <header>
@@ -127,6 +130,9 @@ export default function SessionDesk({ active, settings, root, projectName, layou
                 <p className='session-error' role='alert'>
                   {machine.error}
                 </p>
+              )}
+              {machine.profile.target.kind === 'local' && machine.connection && (
+                <SessionSharing key={machine.connection} connection={machine.connection} />
               )}
               {machine.snapshot?.workspaces.map(workspace => {
                 const handleWorkspace = () => {
@@ -209,6 +215,7 @@ export default function SessionDesk({ active, settings, root, projectName, layou
             </section>
           );
         })}
+        <SessionPairing onMachine={controller.save} />
         <SessionForms
           machines={controller.machines}
           projectRoot={root}
