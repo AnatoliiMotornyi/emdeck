@@ -94,10 +94,12 @@ to paste; **Ctrl+Shift+V** is also supported. Keyboard and context-menu paste
 use the same clipboard events, including images/files. Text uses bracketed paste
 when the running program enables it.
 
-**Shift+Enter** sends a distinct modified Enter key for multiline agent prompts;
-plain **Enter** keeps its normal submit behavior. The running CLI or shell
-decides how to handle that modified key. In Claude Code, **Ctrl+J** is also a
-newline shortcut with no terminal setup; see its
+**Shift+Enter** and **Ctrl+Enter** (**Cmd+Enter** on macOS) send a distinct
+modified Enter key for multiline agent prompts; plain **Enter** keeps its normal
+submit behavior. Ctrl+Enter has no encoding of its own in any terminal, so
+Emdeck sends the same modified key agents already accept. The running CLI or
+shell decides how to handle that modified key. In Claude Code, **Ctrl+J** is
+also a newline shortcut with no terminal setup; see its
 [terminal configuration guide](https://code.claude.com/docs/en/terminal-config).
 **Alt+Enter** and **Ctrl+C** continue to reach the running program unchanged.
 

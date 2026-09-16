@@ -39,15 +39,18 @@ test('paste keys reach native clipboard handling once, preserving multiline brac
   }
 });
 
-test('Shift+Enter is distinct from submit while interrupt, Ctrl+J and Alt+Enter remain intact', async ({
+test('Shift+Enter and Ctrl+Enter break the line while submit, interrupt, Ctrl+J and Alt+Enter remain intact', async ({
   page,
 }) => {
   await page.keyboard.press('Shift+Enter');
+  await page.keyboard.press('Control+Enter');
   await page.keyboard.press('Enter');
   await page.keyboard.press('Control+j');
   await page.keyboard.press('Alt+Enter');
   await page.keyboard.press('Control+c');
-  await expect.poll(() => writes(page)).toEqual(['\x1b[13;2u', '\r', '\n', '\x1b\r', '\x03']);
+  await expect
+    .poll(() => writes(page))
+    .toEqual(['\x1b[13;2u', '\x1b[13;2u', '\r', '\n', '\x1b\r', '\x03']);
 });
 
 test('Ctrl+V retains image paste instead of falling back to text-only clipboard reads', async ({

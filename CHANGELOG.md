@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Break the line on **Ctrl/Cmd+Enter** as well as Shift+Enter in terminals, so
+  multiline prompts work with either habit. Plain Enter, Ctrl+J, Alt+Enter and
+  Ctrl+C keep their existing behavior.
 - Shelve selected changes into a local per-user store, restoring the committed
   content and clearing the index so the working tree is genuinely clean.
   Unshelving reports a file that changed in the meantime instead of overwriting

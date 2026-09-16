@@ -18,6 +18,8 @@ export const terminalKeyAction = (event: TerminalKey) => {
   )
     return 'paste';
   if (!event.altKey && modifier && event.shiftKey && key === 'c') return 'copy';
-  if (!event.altKey && !modifier && event.shiftKey && key === 'enter') return 'shift-enter';
+  // Shift+Enter and Ctrl/Cmd+Enter both mean "break the line, do not submit".
+  // Alt+Enter keeps its own meta-return encoding and stays with the terminal.
+  if (!event.altKey && key === 'enter' && (event.shiftKey || modifier)) return 'newline';
   return 'terminal';
 };
