@@ -9,6 +9,7 @@ import {
 } from '../../src/features/settings/services/projectConfig';
 import { defaults } from '../../src/features/settings/lib/defaults';
 import { emptyProjectConfig } from '../../src/shared/contracts/projectConfig';
+import { migrateStoredRuns } from '../../src/features/runs/services/runDiscovery';
 
 describe('merging project overrides over global settings', () => {
   it('returns global settings unchanged when nothing is overridden', () => {
@@ -111,5 +112,33 @@ describe('writing a configuration file', () => {
       workspace: { sidebarWidth: 320 },
     };
     expect(parseProjectConfig(serialiseProjectConfig(config))).toEqual(config);
+  });
+});
+
+describe('migrating run preferences into the project folder', () => {
+  const preferences = {
+    version: 1,
+    custom: [],
+    selected: 'dev',
+    runner: 'bun',
+    recent: [],
+  };
+  it('adopts legacy localStorage preferences when the project has no runs section', () => {
+    expect(migrateStoredRuns(undefined, preferences, []).selected).toBe('dev');
+    expect(migrateStoredRuns(undefined, preferences, []).runner).toBe('bun');
+  });
+  it('prefers the project folder once it holds a runs section', () => {
+    const stored = {
+      version: 1,
+      custom: [],
+      selected: 'build',
+      runner: 'auto',
+      recent: [],
+    };
+    expect(migrateStoredRuns(stored, preferences, []).selected).toBe('build');
+  });
+  it('falls back to empty preferences when no source is usable', () => {
+    expect(migrateStoredRuns(undefined, null, []).selected).toBe('');
+    expect(migrateStoredRuns(undefined, null, []).runner).toBe('auto');
   });
 });

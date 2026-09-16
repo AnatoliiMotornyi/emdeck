@@ -120,7 +120,13 @@ export function useWorkspaceState() {
     } else setSidebarVisible(visible => !visible);
   };
   const [agentMenu, setAgentMenu] = useState(false);
-  const runs = useRunConfigurations(project, settings.detectRunScripts);
+  const runs = useRunConfigurations(
+    project,
+    settings.detectRunScripts,
+    config.runs,
+    config.setRuns,
+    config.ready
+  );
   const [runsOpen, setRunsOpen] = useState(false);
   const [palette, setPalette] = useState(false);
   const [paletteQuery, setPaletteQuery] = useState('');

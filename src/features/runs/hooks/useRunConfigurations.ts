@@ -1,12 +1,23 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../../../platform/desktop/api';
-import { readStored, store } from '../../../platform/storage/preferences';
+import { readStored } from '../../../platform/storage/preferences';
 import type { Project, RunConfig } from '../../../shared/contracts/workspace';
 import { useLatest } from '../../../shared/hooks/useLatest';
 import { discoverProjectRuns } from '../services/discoverProjectRuns';
 import type { RunPreferences, RunnerPreference } from '../services/runDiscovery';
-import { emptyDiscovery, emptyRuns, rememberRun, restoreRuns } from '../services/runDiscovery';
-export function useRunConfigurations(project: Project | null, enabled: boolean) {
+import {
+  emptyDiscovery,
+  emptyRuns,
+  migrateStoredRuns,
+  rememberRun,
+} from '../services/runDiscovery';
+export function useRunConfigurations(
+  project: Project | null,
+  enabled: boolean,
+  runs: unknown,
+  setRuns: (value: unknown) => void,
+  ready: boolean
+) {
   const root = project?.root ?? '';
   const [state, setState] = useState({ root: '', prefs: emptyRuns });
   const [found, setFound] = useState({ key: '', data: emptyDiscovery, loading: false });
@@ -15,20 +26,25 @@ export function useRunConfigurations(project: Project | null, enabled: boolean) 
   const prefs = active ? state.prefs : emptyRuns;
   const key = `${root}\0${enabled}\0${prefs.runner}`;
   const currentKey = useLatest(key);
+  // Read through a ref rather than depending on `runs` directly: the save effect
+  // below writes `prefs` back into it on every change, and `migrateStoredRuns`
+  // always returns a fresh object, so a value dependency here would ping-pong
+  // the two effects forever instead of settling after the project loads.
+  const latestRuns = useLatest(runs);
   useEffect(() => {
+    if (!root || !ready) return;
     setState({
       root,
-      prefs: root
-        ? restoreRuns(
-            readStored(`relay:run-preferences:${root}`, null),
-            readStored(`relay:runs:${root}`, [])
-          )
-        : emptyRuns,
+      prefs: migrateStoredRuns(
+        latestRuns.current,
+        readStored(`relay:run-preferences:${root}`, null),
+        readStored(`relay:runs:${root}`, [])
+      ),
     });
-  }, [root]);
+  }, [root, ready, latestRuns]);
   useEffect(() => {
-    if (root && active) store(`relay:run-preferences:${root}`, prefs);
-  }, [root, active, prefs]);
+    if (root && active && ready) setRuns(prefs);
+  }, [root, active, ready, prefs, setRuns]);
   useEffect(() => {
     if (!root || !active || !enabled) return;
     let cancelled = false;
