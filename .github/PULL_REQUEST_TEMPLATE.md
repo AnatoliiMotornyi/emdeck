@@ -12,6 +12,7 @@ Target `dev` from your fork. Maintainer promotions from `dev` target `main`.
 
 ## Release impact
 
+- Release-note fragment in `.changes/` (or explain why no note is needed):
 - Dependency/license notice changes:
 - Settings or migration changes:
 
