@@ -157,6 +157,10 @@ test('compact attention updates live, preserves expanded search and remembers co
   await expect(page.locator('.xterm[data-stable="yes"]')).toHaveCount(4);
   await page.reload();
   await expect(rail(page)).toHaveClass(/is-collapsed/);
+  // Terminals belong to the project, so reopening it brings them back.
+  await expect(rail(page).locator('.rail-session')).toHaveCount(4);
+  await page.evaluate(() => localStorage.removeItem('relay:panes'));
+  await page.reload();
   await expect(rail(page).getByText('Your agents will appear here.')).toBeVisible();
   await rail(page).getByRole('button', { name: 'Launch an agent', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Claude Claude Code' })).toBeVisible();

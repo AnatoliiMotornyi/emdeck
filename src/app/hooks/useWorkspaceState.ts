@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { loadAgentPreferences } from '../../features/agents/lib/agents';
+import { rememberPanes } from '../../features/agents/lib/pane-store';
 import { useRunConfigurations } from '../../features/runs/hooks/useRunConfigurations';
 import { loadSettings } from '../../features/settings/lib/settings';
+import { native } from '../../platform/desktop/api';
 import { readStored, store } from '../../platform/storage/preferences';
 import type { DialogSpec } from '../../shared/contracts/dialog';
 import type {
@@ -153,6 +155,9 @@ export function useWorkspaceState() {
     store('relay:terminal-height', terminalHeight);
     store('relay:sidebar-width', sidebarWidth);
   }, [terminalHeight, sidebarWidth]);
+  useEffect(() => {
+    if (native && project) rememberPanes(project.root, panes);
+  }, [project, panes]);
   return {
     conflictRequest,
     setConflictRequest,
