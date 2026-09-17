@@ -35,6 +35,7 @@ pub(crate) async fn terminal_spawn(
     cols: u16,
     rows: u16,
     enhanced_usage: Option<bool>,
+    resume: Option<String>,
     on_event: tauri::ipc::Channel<terminal::TerminalEvent>,
     projects: State<'_, Projects>,
     terminals: State<'_, terminal::WindowTerminals>,
@@ -53,6 +54,7 @@ pub(crate) async fn terminal_spawn(
         cols,
         rows,
         enhanced_usage.unwrap_or(false),
+        resume.as_deref(),
         on_event,
     )
 }

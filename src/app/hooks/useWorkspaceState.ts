@@ -156,8 +156,8 @@ export function useWorkspaceState() {
     store('relay:sidebar-width', sidebarWidth);
   }, [terminalHeight, sidebarWidth]);
   useEffect(() => {
-    if (native && project) rememberPanes(project.root, panes);
-  }, [project, panes]);
+    if (native && project) rememberPanes(project.root, panes, agentUsage);
+  }, [project, panes, agentUsage]);
   return {
     conflictRequest,
     setConflictRequest,

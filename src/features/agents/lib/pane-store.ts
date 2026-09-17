@@ -1,5 +1,5 @@
 import { readStored, store } from '../../../platform/storage/preferences';
-import type { Pane } from '../../../shared/contracts/workspace';
+import type { AgentUsage, Pane } from '../../../shared/contracts/workspace';
 import { restoreProfiles } from '../services/connections';
 
 export const PANE_COLORS = ['#b8ee86', '#c4a0ed', '#8bbbf5', '#f1b17f', '#f38ea2'];
@@ -9,6 +9,8 @@ const MAX_PANES = 12;
 const MAX_PROJECTS = 8;
 const MAX_TEXT = 400;
 const HEX = /^#[0-9a-f]{3,8}$/i;
+// Matches the runtime's resume_command charset, which a shell cannot read as syntax.
+const SESSION = /^[a-z0-9][a-z0-9_-]{0,199}$/i;
 
 interface StoredProject {
   root: string;
@@ -22,7 +24,7 @@ const remoteOf = (value: unknown) => {
   return profile?.kind === 'ssh' ? profile : undefined;
 };
 
-/** A restored pane describes how to launch, never how the last run went. */
+/** A restored pane describes how to launch and which conversation to resume, nothing else. */
 const durable = (pane: Pane, index: number): Pane => ({
   id: pane.id,
   name: pane.name,
@@ -32,6 +34,7 @@ const durable = (pane: Pane, index: number): Pane => ({
   shell: pane.shell,
   color: HEX.test(pane.color) ? pane.color : PANE_COLORS[index % PANE_COLORS.length],
   remote: pane.remote,
+  resume: pane.resume && SESSION.test(pane.resume) ? pane.resume : undefined,
 });
 
 export const restorePanes = (value: unknown): Pane[] => {
@@ -50,6 +53,7 @@ export const restorePanes = (value: unknown): Pane[] => {
           shell: text(item.shell),
           color: text(item.color),
           remote: remoteOf(item.remote),
+          resume: text(item.resume),
         },
         panes.length
       )
@@ -71,8 +75,16 @@ const projects = (): StoredProject[] => {
 export const storedPanes = (root: string): Pane[] =>
   projects().find(entry => entry.root === root)?.panes ?? [];
 
-export const rememberPanes = (root: string, panes: Pane[]) => {
+export const rememberPanes = (root: string, panes: Pane[], usage: Record<string, AgentUsage>) => {
   const rest = projects().filter(entry => entry.root !== root);
-  const next = { root, panes: panes.slice(0, MAX_PANES).map(durable) };
+  const next = {
+    root,
+    panes: panes
+      .slice(0, MAX_PANES)
+      // Reopening clears reported usage, so the restored id stands until a newer one arrives.
+      .map((pane, index) =>
+        durable({ ...pane, resume: usage[pane.id]?.sessionId ?? pane.resume }, index)
+      ),
+  };
   store(KEY, [next, ...rest].slice(0, MAX_PROJECTS));
 };
