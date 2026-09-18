@@ -7,13 +7,19 @@ export interface BranchNode {
 export const branchTree = (
   branches: string[],
   query = '',
-  scope: 'local' | 'remote' = 'local'
+  scope: 'local' | 'remote' = 'local',
+  currentBranch = ''
 ): BranchNode[] => {
   const root: BranchNode[] = [];
+  let current: BranchNode | undefined;
   const nodes = new Map<string, BranchNode>();
   const filter = query.trim().toLowerCase();
   for (const branch of branches) {
     if (!branch.toLowerCase().includes(filter)) continue;
+    if (scope === 'local' && branch === currentBranch) {
+      current = { name: branch, path: branch, children: [] };
+      continue;
+    }
     let children = root;
     let path = '';
     for (const name of branch.split('/')) {
@@ -40,5 +46,6 @@ export const branchTree = (
     children.forEach(node => sort(node.children));
     return children;
   };
-  return sort(root);
+  const sorted = sort(root);
+  return current ? [current, ...sorted] : sorted;
 };

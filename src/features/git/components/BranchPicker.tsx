@@ -77,8 +77,8 @@ export default function BranchPicker({
   } | null>(null);
   const id = useId();
   const local = useMemo(
-    () => branchTree(git?.localBranches ?? [], query),
-    [git?.localBranches, query]
+    () => branchTree(git?.localBranches ?? [], query, 'local', git?.branch),
+    [git?.localBranches, git?.branch, query]
   );
   const remote = useMemo(
     () => branchTree(git?.remoteBranches ?? [], query, 'remote'),
