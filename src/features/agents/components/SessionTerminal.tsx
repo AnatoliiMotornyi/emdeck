@@ -11,6 +11,7 @@ import { terminalInput } from '../services/session-model';
 import { createTerminalFitter } from '../services/terminal-fit';
 import { bindTerminalAttachments } from '../lib/terminalAttachments';
 import { bindTerminalKeyboard } from '../lib/terminalKeyboard';
+import { terminalFont } from '../lib/terminal-font';
 
 interface Props {
   connection: string;
@@ -51,7 +52,8 @@ export default function SessionTerminal({
     const client = crypto.randomUUID();
     const term = new Terminal({
       fontSize: appearance.current.terminalFontSize,
-      fontFamily: '"Cascadia Code", Consolas, monospace',
+      fontFamily: terminalFont(appearance.current.terminalFontFamily),
+      lineHeight: appearance.current.terminalLineHeight,
       scrollback: appearance.current.scrollback,
       theme: {
         background: appearance.current.theme === 'light' ? '#fafbfc' : '#111418',
@@ -171,7 +173,9 @@ export default function SessionTerminal({
   useEffect(() => {
     const term = terminal.current;
     if (term) {
+      term.options.fontFamily = terminalFont(settings.terminalFontFamily);
       term.options.fontSize = settings.terminalFontSize;
+      term.options.lineHeight = settings.terminalLineHeight;
       term.options.scrollback = settings.scrollback;
       term.options.theme = {
         background: settings.theme === 'light' ? '#fafbfc' : '#111418',
@@ -179,7 +183,13 @@ export default function SessionTerminal({
       };
       resizeCurrent.current?.();
     }
-  }, [settings.theme, settings.terminalFontSize, settings.scrollback]);
+  }, [
+    settings.theme,
+    settings.terminalFontFamily,
+    settings.terminalFontSize,
+    settings.terminalLineHeight,
+    settings.scrollback,
+  ]);
   useEffect(() => {
     if (focusRequest) terminal.current?.focus();
   }, [focusRequest]);

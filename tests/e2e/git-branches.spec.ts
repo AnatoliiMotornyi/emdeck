@@ -355,7 +355,7 @@ test('source control provides continue and abort when a rebase is in progress', 
     .poll(() => gitCalls(page))
     .toEqual([expect.objectContaining({ action: 'abort', expectedCurrent: 'main' })]);
 });
-test('main stays first locally and inside each remote after filtering and refresh', async ({
+test('current and main stay first without duplicates after filtering and branch changes', async ({
   page,
 }) => {
   await openBranchFixture(page, 'dima/feature/branch-name');
@@ -369,11 +369,18 @@ test('main stays first locally and inside each remote after filtering and refres
   await page.getByTitle('Refresh branches', { exact: true }).click();
   const local = page.getByRole('region', { name: 'Local branches', exact: true });
   const remote = page.getByRole('region', { name: 'Remote branches', exact: true });
-  const expectMainFirst = async () => {
-    await expect(local.locator(':scope > div > ul > li > button').first()).toHaveAttribute(
-      'aria-label',
-      'Actions for local branch main'
-    );
+  const topRows = local.locator(':scope > div > ul > li > button');
+  const expectPinned = async (current = 'dima/feature/branch-name') => {
+    const branches = current === 'main' ? ['main'] : [current, 'main'];
+    for (const [index, name] of branches.entries()) {
+      await expect(topRows.nth(index)).toHaveAttribute(
+        'aria-label',
+        `Actions for local branch ${name}`
+      );
+      await expect(
+        local.getByRole('button', { name: `Actions for local branch ${name}`, exact: true })
+      ).toHaveCount(1);
+    }
     for (const name of ['origin', 'upstream']) {
       const folder = remote
         .getByRole('button', { name: `Remote folder ${name}`, exact: true })
@@ -384,17 +391,44 @@ test('main stays first locally and inside each remote after filtering and refres
       );
     }
   };
-  await expectMainFirst();
+  await expectPinned();
+  await expect(topRows.first().locator('.branch-name')).toHaveText('dima/feature/branch-name');
+  await page.screenshot({ path: 'test-results/current-branch-first.png' });
+  await topRows.first().press('ArrowRight');
+  await expect(
+    page.getByRole('menu', { name: 'Branch actions for dima/feature/branch-name', exact: true })
+  ).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(topRows.first()).toBeFocused();
   const filter = page.getByRole('textbox', { name: 'Filter branches' });
   await filter.fill('main');
-  await expectMainFirst();
+  await expectPinned('main');
+  await expect(
+    local.getByRole('button', {
+      name: 'Actions for local branch dima/feature/branch-name',
+      exact: true,
+    })
+  ).toHaveCount(0);
   await filter.fill('dima');
+  await expect(topRows.first()).toHaveAttribute(
+    'aria-label',
+    'Actions for local branch dima/feature/branch-name'
+  );
   await expect(
     local.getByRole('button', { name: 'Actions for local branch main', exact: true })
   ).toHaveCount(0);
   await filter.fill('');
   await page.getByTitle('Refresh branches', { exact: true }).click();
-  await expectMainFirst();
+  await expectPinned();
+  for (const current of ['dev', 'main']) {
+    await page.evaluate(branch => {
+      const state = window as unknown as { __emdeckGit: { branch: string } };
+      state.__emdeckGit.branch = branch;
+    }, current);
+    await page.getByTitle('Refresh branches', { exact: true }).click();
+    await expectPinned(current);
+    await expect(topRows.first().locator('small')).toHaveText('current');
+  }
   expect(await gitCalls(page)).toEqual([]);
 });
 

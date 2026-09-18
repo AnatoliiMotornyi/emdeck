@@ -46,7 +46,8 @@ describe('branch folder hierarchy', () => {
         'origin/main',
       ],
       '',
-      'remote'
+      'remote',
+      'origin/dev'
     );
     expect(tree.map(node => node.name)).toEqual(['origin', 'upstream']);
     expect(tree[0].children.map(node => node.name)).toEqual(['main', 'feature', 'dev']);
@@ -55,6 +56,43 @@ describe('branch folder hierarchy', () => {
     expect(
       branchTree(['origin/aaa', 'origin/dev'], '', 'remote')[0].children.map(node => node.name)
     ).toEqual(['aaa', 'dev']);
+  });
+
+  it('pins the current branch before main with its full path and no duplicate folder entry', () => {
+    const branches = ['main', 'aaa', 'dev', 'feature/aaa', 'feature/task'];
+    const tree = branchTree(branches, '', 'local', 'feature/task');
+    expect(tree.map(node => node.name)).toEqual(['feature/task', 'main', 'feature', 'aaa', 'dev']);
+    expect(tree[0]).toEqual({ name: 'feature/task', path: 'feature/task', children: [] });
+    expect(tree[2].children.map(node => node.path)).toEqual(['feature/aaa']);
+    expect(branchTree(branches, '', 'local', 'dev').map(node => node.name)).toEqual([
+      'dev',
+      'main',
+      'feature',
+      'aaa',
+    ]);
+    expect(branchTree(['main', 'only/path/task'], '', 'local', 'only/path/task')).toEqual([
+      { name: 'only/path/task', path: 'only/path/task', children: [] },
+      { name: 'main', path: 'main', children: [] },
+    ]);
+    expect(branches).toEqual(['main', 'aaa', 'dev', 'feature/aaa', 'feature/task']);
+  });
+
+  it('deduplicates current main and respects filters or a missing current branch', () => {
+    const branches = ['aaa', 'main', 'feature/task'];
+    expect(branchTree(branches, '', 'local', 'main').map(node => node.path)).toEqual([
+      'main',
+      'feature',
+      'aaa',
+    ]);
+    expect(branchTree(branches, ' MAIN ', 'local', 'feature/task')).toEqual([
+      { name: 'main', path: 'main', children: [] },
+    ]);
+    expect(branchTree(branches, ' TASK ', 'local', 'feature/task')).toEqual([
+      { name: 'feature/task', path: 'feature/task', children: [] },
+    ]);
+    expect(branchTree(branches, 'missing', 'local', 'feature/task')).toEqual([]);
+    expect(branchTree(branches, '', 'local', 'HEAD')).toEqual(branchTree(branches));
+    expect(branchTree([], '', 'local', 'main')).toEqual([]);
   });
 
   it('filters full paths without losing remote names or parent folders', () => {

@@ -3,6 +3,8 @@ export const defaults: Settings = {
   accent: '#b8ee86',
   fontSize: 13,
   terminalFontSize: 12,
+  terminalFontFamily: '',
+  terminalLineHeight: 1.35,
   wordWrap: false,
   showHidden: true,
   shell: '',
