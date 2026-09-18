@@ -39,6 +39,14 @@
   gap: 8px;
   font-size: 10px;
 }
+.session-options label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.session-options input[type="checkbox"] {
+  margin: 0;
+}
 .session-machine-actions button,
 .session-machines header button,
 .session-terminal header button {
