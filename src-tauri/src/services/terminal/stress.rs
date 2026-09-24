@@ -1,4 +1,4 @@
-use super::{TerminalEvent, Terminals};
+use super::{test_support::CursorQueries, TerminalEvent, Terminals};
 use std::time::{Duration, Instant};
 
 #[test]
@@ -31,18 +31,15 @@ fn six_terminals_stream_resize_and_shutdown() {
     let mut resized = Instant::now();
     let mut report = Instant::now();
     let mut byte_counts = [0_u64; 6];
-    let mut tails = vec![Vec::new(); 6];
+    let mut queries: Vec<_> = (0..6).map(|_| CursorQueries::default()).collect();
     while start.elapsed() < Duration::from_secs(seconds) {
         if let Ok((index, event)) = rx.recv_timeout(Duration::from_secs(2)) {
             match event {
                 TerminalEvent::Data { data } => {
                     byte_counts[index] += data.len() as u64;
-                    tails[index].extend(data);
-                    if tails[index].windows(4).any(|bytes| bytes == b"\x1b[6n") {
+                    for _ in 0..queries[index].consume(&data) {
                         let _ = terminals.write(&ids[index], "\x1b[1;1R");
                     }
-                    let keep = tails[index].len().saturating_sub(3);
-                    tails[index].drain(..keep);
                 }
                 TerminalEvent::Exit { code } => {
                     panic!("Terminal {index} exited during soak: {code:?}")
