@@ -8,38 +8,51 @@ import type { ProjectConfig, SettingsOverrides } from '../../shared/contracts/pr
 import { emptyProjectConfig } from '../../shared/contracts/projectConfig';
 import type { Project } from '../../shared/contracts/workspace';
 const SAVE_DELAY = 300;
+interface ConfigState {
+  root: string;
+  config: ProjectConfig;
+  ready: boolean;
+}
+const initial: ConfigState = { root: '', config: emptyProjectConfig, ready: false };
 export function useProjectConfig(project: Project | null, fail: (error: unknown) => void) {
   const root = project?.root ?? '';
-  const [state, setState] = useState({
-    root: '',
-    config: emptyProjectConfig,
-    ready: false,
-  });
+  const [state, setState] = useState(initial);
+  // Mirrors `state` synchronously, so consecutive edits compose over each other
+  // and the save is scheduled outside a state updater, which React may replay.
+  const latest = useRef(initial);
+  const commit = useCallback((next: ConfigState) => {
+    latest.current = next;
+    setState(next);
+  }, []);
   // A corrupt or unwritable file is never rewritten, so a user can repair it by hand.
   const writable = useRef(true);
   const pending = useRef<{ root: string; config: ProjectConfig } | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const drain = useCallback(() => {
+  // Settles once the write finishes and never rejects, so a closing window can
+  // await it before destroying itself.
+  const drain = useCallback(async () => {
     const queued = pending.current;
     pending.current = null;
     if (!queued) return;
-    void api.writeProjectConfig(queued.root, serialiseProjectConfig(queued.config)).catch(error => {
-      writable.current = false;
-      fail(error);
-    });
+    await api
+      .writeProjectConfig(queued.root, serialiseProjectConfig(queued.config))
+      .catch((error: unknown) => {
+        writable.current = false;
+        fail(error);
+      });
   }, [fail]);
   const flush = useCallback(() => {
     clearTimeout(timer.current);
-    drain();
+    return drain();
   }, [drain]);
   useEffect(() => {
-    flush();
+    void flush();
     if (!root) {
-      setState({ root: '', config: emptyProjectConfig, ready: true });
+      commit({ root: '', config: emptyProjectConfig, ready: true });
       return;
     }
     let cancelled = false;
-    setState({ root, config: emptyProjectConfig, ready: false });
+    commit({ root, config: emptyProjectConfig, ready: false });
     void api
       .readProjectConfig(root)
       .then(raw => {
@@ -48,52 +61,51 @@ export function useProjectConfig(project: Project | null, fail: (error: unknown)
         writable.current = parsed !== null;
         if (!parsed)
           fail('This project has an unreadable .emdeck/settings.json. Using global settings.');
-        setState({ root, config: parsed ?? emptyProjectConfig, ready: true });
+        commit({ root, config: parsed ?? emptyProjectConfig, ready: true });
       })
       .catch(error => {
         if (cancelled) return;
         writable.current = false;
         fail(error);
-        setState({ root, config: emptyProjectConfig, ready: true });
+        commit({ root, config: emptyProjectConfig, ready: true });
       });
     return () => {
       cancelled = true;
     };
-  }, [root, flush, fail]);
+  }, [root, flush, fail, commit]);
   useEffect(() => {
     // A quit or a reload can land inside the debounce window. `pagehide` and the
     // hidden visibility state are the points a browser reliably still runs code
-    // at; `beforeunload` is not. The desktop close path calls `flush` itself
-    // from the existing tauri://close-requested handler, early enough that the
-    // write is in flight before the window can be destroyed.
+    // at; `beforeunload` is not. The desktop close path awaits `flush` itself
+    // from the existing tauri://close-requested handler before destroying the
+    // window.
+    const leave = () => void flush();
     const hide = () => {
-      if (document.visibilityState === 'hidden') flush();
+      if (document.visibilityState === 'hidden') leave();
     };
     document.addEventListener('visibilitychange', hide);
-    window.addEventListener('pagehide', flush);
+    window.addEventListener('pagehide', leave);
     return () => {
       document.removeEventListener('visibilitychange', hide);
-      window.removeEventListener('pagehide', flush);
+      window.removeEventListener('pagehide', leave);
       // Drain rather than discard: cancelling the timer alone loses the edit.
       // Draining early if `flush` ever changes identity is harmless, because the
       // queued record carries the root it belongs to.
-      flush();
+      leave();
     };
   }, [flush]);
   const queue = useCallback(
     (change: (previous: ProjectConfig) => ProjectConfig) => {
-      setState(previous => {
-        if (previous.root !== root || !root || !previous.ready) return previous;
-        const config = change(previous.config);
-        if (writable.current) {
-          pending.current = { root, config };
-          clearTimeout(timer.current);
-          timer.current = setTimeout(drain, SAVE_DELAY);
-        }
-        return { ...previous, config };
-      });
+      const previous = latest.current;
+      if (previous.root !== root || !root || !previous.ready) return;
+      const config = change(previous.config);
+      commit({ ...previous, config });
+      if (!writable.current) return;
+      pending.current = { root, config };
+      clearTimeout(timer.current);
+      timer.current = setTimeout(() => void drain(), SAVE_DELAY);
     },
-    [root, drain]
+    [root, drain, commit]
   );
   const setOverrides = useCallback(
     (change: (previous: SettingsOverrides) => SettingsOverrides) =>

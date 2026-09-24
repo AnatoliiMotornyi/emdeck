@@ -125,9 +125,10 @@ export function useWorkspaceLifecycle({
           const stop = await win.onCloseRequested(async event => {
             // Own the whole close operation, including errors and repeated requests.
             event.preventDefault();
-            // Start the debounced project write before anything can destroy the
-            // window, so a setting changed moments ago still reaches the disk.
-            handlers.current.flushProjectConfig();
+            // Start the debounced project write before anything else, and wait
+            // for it before destroying the window, so a setting changed moments
+            // ago still reaches the disk.
+            const saved = handlers.current.flushProjectConfig();
             if (closePending || disposed) return;
             closePending = true;
             try {
@@ -146,6 +147,7 @@ export function useWorkspaceLifecycle({
               // close() would emit another close request and re-enter this handler.
               if (!disposed) {
                 rememberProject(latest.current.project);
+                await saved;
                 await win.destroy();
               }
             } catch (error) {
