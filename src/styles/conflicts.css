@@ -1,12 +1,12 @@
 .modal.conflict-modal {
   width: min(1800px, 96vw);
-  max-width: 96vw;
+  max-width: 100%;
   height: min(920px, 92vh);
-  max-height: 92vh;
+  max-height: calc(100dvh - 2 * var(--modal-inset));
   display: flex;
   flex-direction: column;
   padding: 20px;
-  overflow: hidden;
+  overflow: auto;
 }
 
 .conflict-modal > header,
@@ -41,7 +41,7 @@
 
 .conflict-layout {
   flex: 1;
-  min-height: 0;
+  min-height: 220px;
   display: grid;
   grid-template-columns: 200px minmax(0, 1fr);
   border: 1px solid var(--border);
