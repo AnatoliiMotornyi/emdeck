@@ -78,6 +78,13 @@ test('startup restore can be disabled while explicit new-window projects still t
   page,
 }) => {
   await page.getByTitle('Settings', { exact: true }).click();
+  // Startup is a global-only section: reopenLastProject is read before any
+  // project exists, so it cannot be scoped to one. With a project open the
+  // panel starts in project scope, so the scope has to be switched first.
+  await page
+    .getByRole('group', { name: 'Settings scope' })
+    .getByRole('button', { name: /All projects/ })
+    .click();
   await expect(
     page.getByRole('checkbox', { name: /Reopen last project on startup/ })
   ).toBeChecked();
@@ -88,6 +95,7 @@ test('startup restore can be disabled while explicit new-window projects still t
   await expect(page.locator('.project-switch')).toContainText('Open workspace');
   await expect(page.getByRole('tree', { name: 'Project files' })).toHaveCount(0);
   await page.getByTitle('Settings', { exact: true }).click();
+  // No project is open here, so the panel is already forced to global scope.
   await expect(
     page.getByRole('checkbox', { name: /Reopen last project on startup/ })
   ).not.toBeChecked();
@@ -146,9 +154,26 @@ test('a delayed startup restore never replaces a project opened by the user', as
   expect(paths).toEqual(['/projects/second']);
 });
 test('a clean window closes immediately using the permitted native action', async ({ page }) => {
+  // A project setting changed moments before the quit must reach the disk on
+  // the way out. The write is debounced, so without a flush on the close
+  // request it would be issued after the window is already gone, or never.
+  await page.getByTitle('Settings', { exact: true }).click();
+  await page.getByLabel('More accent colors').selectOption('#e8dd7a');
+  await page.getByRole('button', { name: 'Done', exact: true }).click();
   await requestClose(page);
   expect(await destroyedWindows(page)).toEqual(['main']);
   await expect(page.getByRole('dialog')).toHaveCount(0);
+  const calls = await page.evaluate(
+    () =>
+      (window as unknown as { __emdeckCalls: { command: string; args: Record<string, unknown> }[] })
+        .__emdeckCalls
+  );
+  const writes = calls.filter(call => call.command === 'write_project_config');
+  expect(writes.map(call => call.args.root)).toContain('/projects/first');
+  expect(String(writes.at(-1)!.args.content)).toContain('#e8dd7a');
+  expect(calls.findIndex(call => call.command === 'write_project_config')).toBeLessThan(
+    calls.findIndex(call => call.command === 'plugin:window|destroy')
+  );
 });
 test('unsaved edits survive cancelling close and close after confirmation', async ({ page }) => {
   await page.getByRole('treeitem', { name: /notes.ts/ }).click();

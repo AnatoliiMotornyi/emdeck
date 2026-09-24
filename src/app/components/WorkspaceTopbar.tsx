@@ -40,7 +40,7 @@ type Props = {
     | 'setRunsOpen'
     | 'run'
     | 'runSelected'
-    | 'setSettings'
+    | 'updateSettings'
     | 'launchRun'
     | 'editRun'
     | 'toggleSidebar'
@@ -73,7 +73,7 @@ export default function WorkspaceTopbar({ model }: Props) {
   };
   const handleRunsOpenClick = () => setRunsOpen(false);
   const handleSettingsToggle: React.ComponentProps<typeof RunPicker>['onToggle'] = enabled =>
-    setSettings(previous => ({ ...previous, detectRunScripts: enabled }));
+    updateSettings({ detectRunScripts: enabled });
   const handleRunsOpenSelect: React.ComponentProps<typeof RunPicker>['onSelect'] = id => {
     runs.select(id);
     setRunsOpen(false);
@@ -102,7 +102,7 @@ export default function WorkspaceTopbar({ model }: Props) {
     setRunsOpen,
     run,
     runSelected,
-    setSettings,
+    updateSettings,
     launchRun,
     editRun,
     toggleSidebar,

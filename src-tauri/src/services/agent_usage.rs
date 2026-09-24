@@ -100,7 +100,7 @@ impl Probe {
         .map_err(err)?;
         Ok(probe)
     }
-    pub fn command(&self, shell: &str) -> Result<String> {
+    pub fn command(&self, shell: &str, resume: Option<&str>) -> Result<String> {
         let file = self
             .directory
             .path()
@@ -119,13 +119,14 @@ impl Probe {
                         .into(),
                 );
             }
-            return Ok(format!("claude --settings \"{file}\""));
+            return Ok(format!("claude --settings \"{file}\"{}", resumed(resume)));
         }
         let powershell = matches!(shell_name.as_str(), "powershell" | "pwsh")
             || (shell_name.is_empty() && cfg!(windows));
         Ok(format!(
-            "claude --settings {}",
-            shell_quote(&file, powershell)
+            "claude --settings {}{}",
+            shell_quote(&file, powershell),
+            resumed(resume)
         ))
     }
     pub fn directory(&self) -> &Path {
@@ -151,6 +152,14 @@ impl Probe {
         Some(usage)
     }
 }
+// An id the runtime rejects drops the flag rather than reaching the shell unvalidated.
+fn resumed(session: Option<&str>) -> String {
+    match emdeck_session::agent::resume_command("claude", session) {
+        Some(args) => format!(" {}", args[1..].join(" ")),
+        None => String::new(),
+    }
+}
+
 fn shell_quote(value: &str, powershell: bool) -> String {
     if powershell {
         format!("'{}'", value.replace('\'', "''"))
@@ -237,6 +246,21 @@ pub fn report_cli() -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn usage_reporting_survives_a_resume_and_rejects_shell_syntax() {
+        let probe = Probe::new().unwrap();
+        let plain = probe.command("/bin/sh", None).unwrap();
+        assert!(plain.starts_with("claude --settings"));
+        assert!(!plain.contains("--resume"));
+
+        let resumed = probe.command("/bin/sh", Some("abc_123-XY")).unwrap();
+        assert!(resumed.starts_with("claude --settings"));
+        assert!(resumed.ends_with(" --resume abc_123-XY"));
+
+        for bad in ["a; rm -rf ~", "$(whoami)", "a b", "-flag", ""] {
+            assert_eq!(probe.command("/bin/sh", Some(bad)).unwrap(), plain);
+        }
+    }
     #[test]
     #[ignore = "Requires EMDECK_TEST_REPORTER_EXE pointing to the built application"]
     fn built_reporter_accepts_statusline_stdin() {

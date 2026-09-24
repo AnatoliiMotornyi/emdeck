@@ -126,6 +126,7 @@ export interface Pane {
   endedAt?: number;
   restart?: number;
   remote?: SshProfile;
+  resume?: string;
 }
 export type Layout = 'columns' | 'rows' | 'grid';
 export interface Settings {

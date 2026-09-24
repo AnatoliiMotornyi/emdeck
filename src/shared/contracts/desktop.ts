@@ -31,6 +31,8 @@ export interface DesktopCommands {
   open_project_window: Command<{ path: string }, OpenWindowResult>;
   focus_project_window: Command<{ path: string }, string | null>;
   startup_project: Command<Record<string, never>, string | null>;
+  read_project_config: Command<Repository, string | null>;
+  write_project_config: Command<Repository & { content: string }, void>;
   read_directory: Command<FileLocation, Entry[]>;
   read_file: Command<FileLocation, FileData>;
   find_file: Command<{ root: string; name: string }, string[]>;
@@ -72,6 +74,7 @@ export interface DesktopCommands {
       cols: number;
       rows: number;
       enhancedUsage: boolean;
+      resume: string | null;
       onEvent: unknown;
     },
     string

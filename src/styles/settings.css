@@ -1,3 +1,35 @@
+.settings-scope {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.settings-scope > button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 9px 11px;
+  gap: 5px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  text-align: left;
+  white-space: normal;
+  font-size: 11px;
+  font-weight: 550;
+}
+
+.settings-scope > button.chosen {
+  border-color: var(--accent-ink);
+  background: var(--hover);
+}
+
+.settings-scope small {
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
 .settings-section {
   padding: 15px 0;
   border-top: 1px solid var(--border);
@@ -229,6 +261,25 @@
 
 .setting-row input[type="number"] {
   padding: 6px 8px;
+}
+
+.override-marker {
+  margin-left: auto;
+  padding: 3px 9px;
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  font-size: 9px;
+  letter-spacing: 0.3px;
+}
+
+.override-marker:hover {
+  border-color: var(--accent-ink);
+  background: color-mix(in srgb, var(--accent) 26%, transparent);
+}
+
+.settings-section > .override-marker {
+  margin: 10px 0 0;
 }
 
 .swatches {
