@@ -40,6 +40,8 @@ pub struct Host {
     endpoint: Endpoint,
     state: Mutex<State>,
     active: Arc<AtomicUsize>,
+    #[cfg(test)]
+    accepted: AtomicUsize,
 }
 impl Host {
     pub fn load(home: &Path, endpoint: Endpoint) -> Result<Arc<Self>> {
@@ -75,6 +77,8 @@ impl Host {
             endpoint,
             state: Mutex::new(state),
             active: Arc::new(AtomicUsize::new(0)),
+            #[cfg(test)]
+            accepted: AtomicUsize::new(0),
         }))
     }
     fn listener(address: SocketAddr) -> Result<TcpListener> {
@@ -184,6 +188,8 @@ impl Host {
         };
         let epoch = state.epoch;
         self.active.fetch_add(1, Ordering::Relaxed);
+        #[cfg(test)]
+        self.accepted.fetch_add(1, Ordering::Relaxed);
         let host = self.clone();
         std::thread::spawn(move || {
             let _ = host.serve(socket, config, epoch);
@@ -199,36 +205,49 @@ impl Host {
     }
     fn serve(&self, socket: TcpStream, config: Arc<ServerConfig>, epoch: u64) -> Result<()> {
         socket.set_nonblocking(false).map_err(error)?;
+        socket.set_nodelay(true).map_err(error)?;
         socket
             .set_read_timeout(Some(Duration::from_secs(5)))
             .map_err(error)?;
         socket
             .set_write_timeout(Some(Duration::from_secs(5)))
             .map_err(error)?;
-        let mut stream = StreamOwned::new(
+        let mut stream = BufReader::new(StreamOwned::new(
             ServerConnection::new(config).map_err(error)?,
             tls::ServerIo::new(socket),
-        );
-        let request: Request = serde_json::from_slice(&crate::server::line(
-            &mut BufReader::new(&mut stream),
-            MAX_REQUEST,
-        )?)
-        .map_err(error)?;
-        let result = if request.version != 1 || request.id.is_empty() || request.id.len() > 100 {
-            Err("Invalid remote request.".into())
-        } else {
-            self.dispatch(request.payload, epoch)
-        };
-        crate::server::send(
-            &mut stream,
-            &Response {
-                version: 1,
-                id: request.id,
-                result: result.as_ref().ok().cloned(),
-                error: result.err(),
-            },
-            MAX_RESPONSE,
-        )
+        ));
+        loop {
+            stream.get_mut().sock.next_request();
+            let request: Request =
+                serde_json::from_slice(&crate::server::line(&mut stream, MAX_REQUEST)?)
+                    .map_err(error)?;
+            let reusable = request.keep_alive && matches!(&request.payload, Payload::Call { .. });
+            let result = if request.version != 1 || request.id.is_empty() || request.id.len() > 100
+            {
+                Err("Invalid remote request.".into())
+            } else {
+                // Revalidate the device and sharing epoch for every request, including
+                // requests on an already authenticated TLS connection.
+                self.dispatch(request.payload, epoch)
+            };
+            let keep_alive = reusable && result.is_ok();
+            crate::server::send(
+                stream.get_mut(),
+                &Reply {
+                    response: Response {
+                        version: 1,
+                        id: request.id,
+                        result: result.as_ref().ok().cloned(),
+                        error: result.err(),
+                    },
+                    keep_alive,
+                },
+                MAX_RESPONSE,
+            )?;
+            if !keep_alive {
+                return Ok(());
+            }
+        }
     }
     fn authorized(state: &State, epoch: u64, device: &str, token: &str) -> bool {
         state.listener.is_some()
@@ -320,6 +339,9 @@ impl Host {
 
 #[cfg(test)]
 impl Host {
+    pub(super) fn test_accepted(&self) -> usize {
+        self.accepted.load(Ordering::Relaxed)
+    }
     pub(super) fn test_bind(self: &Arc<Self>) -> SocketAddr {
         let listener = Self::listener("127.0.0.1:0".parse().unwrap()).unwrap();
         let address = listener.local_addr().unwrap();

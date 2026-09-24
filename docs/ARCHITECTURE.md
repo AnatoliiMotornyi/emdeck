@@ -100,6 +100,16 @@ React receives public machine metadata only. Sharing is opt-in and cannot alter
 firewall settings or install network software. See
 [direct remote connections](TAILSCALE-SESSIONS.md).
 
+Each paired credential owns a small native pool of idle TLS connections. The
+optional reuse flag is acknowledged by the host; older hosts continue using one
+request per connection. Pool locks never span network IO, keeping screen and
+snapshot long polls independent from terminal input. The host rechecks device
+trust and the sharing epoch on every request, retains frame/deadline limits and
+expires idle sockets. Failed requests are never automatically replayed. Terminal
+input uses a bounded ordered queue that combines keys received during an
+in-flight write, splits large pastes at Unicode-safe boundaries and stops on
+detach or error.
+
 Opening a second project defaults to a new native window. Replacement resets
 that window's views only after the existing confirmation flow. Native project
 roots and terminal groups are keyed by the invoking window, not
@@ -320,7 +330,11 @@ The terminal launch menu is portaled to the document body to escape panel
 containment and toolbar stacking. Its pure placement helper selects above or
 below the trigger and clamps width and scrollable height to the visible
 viewport. Resize/scroll observers exist only while the menu is open; positioning
-updates its DOM styles without rerendering terminal sessions.
+updates its DOM styles without rerendering terminal sessions. Pointer dismissal
+uses the pointer target: a WebKit blur with no next focus target does not remove
+a launch option before its click runs. Keyboard focus moving outside and Escape
+still dismiss the menu. The macOS CI jobs exercise these launch workflows in
+WebKit in addition to the main Chromium browser suite.
 
 Linting, type checks, architecture checks and React Doctor are development
 tools; none run inside the shipped IDE or analyze projects opened by its users.

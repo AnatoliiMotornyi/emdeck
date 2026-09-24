@@ -6,7 +6,7 @@ use rustls::{
 use std::{
     io::{BufReader, Read, Write},
     net::{SocketAddr, TcpStream},
-    sync::Arc,
+    sync::{Arc, Mutex},
     time::{Duration, Instant},
 };
 
@@ -21,6 +21,9 @@ impl ServerIo {
             socket,
             deadline: Instant::now() + Duration::from_secs(40),
         }
+    }
+    pub fn next_request(&mut self) {
+        self.deadline = Instant::now() + Duration::from_secs(40);
     }
     fn remaining(&self) -> std::io::Result<Duration> {
         self.deadline
@@ -64,11 +67,7 @@ pub(super) fn server(certificate: &[u8], key: &[u8]) -> Result<Arc<ServerConfig>
             .map_err(error)?;
     Ok(Arc::new(config))
 }
-pub(super) fn exchange(
-    address: SocketAddr,
-    certificate: &[u8],
-    payload: super::types::Payload,
-) -> Result<serde_json::Value> {
+fn client_config(certificate: &[u8]) -> Result<Arc<ClientConfig>> {
     // This one certificate is the only trust root. System/public roots and TOFU are not used.
     let mut roots = RootCertStore::empty();
     roots
@@ -80,8 +79,13 @@ pub(super) fn exchange(
             .map_err(error)?
             .with_root_certificates(roots)
             .with_no_client_auth();
+    Ok(Arc::new(config))
+}
+type Stream = BufReader<StreamOwned<ClientConnection, TcpStream>>;
+
+fn connect(address: SocketAddr, config: Arc<ClientConfig>) -> Result<Stream> {
     let connection = ClientConnection::new(
-        Arc::new(config),
+        config,
         ServerName::try_from("emdeck.internal").map_err(error)?,
     )
     .map_err(error)?;
@@ -96,27 +100,100 @@ pub(super) fn exchange(
     socket
         .set_write_timeout(Some(Duration::from_secs(5)))
         .map_err(error)?;
-    let mut stream = StreamOwned::new(connection, socket);
+    socket.set_nodelay(true).map_err(error)?;
+    Ok(BufReader::new(StreamOwned::new(connection, socket)))
+}
+
+fn request(
+    stream: &mut Stream,
+    payload: super::types::Payload,
+    keep_alive: bool,
+) -> Result<super::types::Reply> {
     let id = uuid::Uuid::new_v4().to_string();
     crate::server::send(
-        &mut stream,
+        stream.get_mut(),
         &super::types::Request {
             version: 1,
             id: id.clone(),
             payload,
+            keep_alive,
         },
         crate::protocol::MAX_REQUEST,
     )?;
-    let response: crate::protocol::Response = serde_json::from_slice(&crate::server::line(
-        &mut BufReader::new(&mut stream),
-        crate::protocol::MAX_RESPONSE,
-    )?)
-    .map_err(error)?;
-    if response.version != 1 || response.id != id {
+    let reply: super::types::Reply =
+        serde_json::from_slice(&crate::server::line(stream, crate::protocol::MAX_RESPONSE)?)
+            .map_err(error)?;
+    if reply.response.version != 1 || reply.response.id != id {
         return Err("Invalid remote response.".into());
     }
+    Ok(reply)
+}
+
+fn result(response: crate::protocol::Response) -> Result<serde_json::Value> {
     if let Some(error) = response.error {
         return Err(error);
     }
     Ok(response.result.unwrap_or(serde_json::Value::Null))
 }
+
+pub(super) fn exchange(
+    address: SocketAddr,
+    certificate: &[u8],
+    payload: super::types::Payload,
+) -> Result<serde_json::Value> {
+    let mut stream = connect(address, client_config(certificate)?)?;
+    result(request(&mut stream, payload, false)?.response)
+}
+
+/// Only idle connections are locked. Long polls never block terminal input.
+/// A failed exchange is never replayed: the host may already have applied input.
+#[derive(Default)]
+pub(super) struct Pool {
+    idle: Mutex<Vec<(Instant, Stream)>>,
+    config: Mutex<Option<Arc<ClientConfig>>>,
+}
+impl Pool {
+    #[cfg(test)]
+    pub(super) fn idle_count(&self) -> usize {
+        self.idle.lock().unwrap().len()
+    }
+    pub fn call(
+        &self,
+        address: SocketAddr,
+        certificate: &[u8],
+        payload: super::types::Payload,
+    ) -> Result<serde_json::Value> {
+        let cached = {
+            let mut idle = self.idle.lock().map_err(error)?;
+            // The host's idle timeout is five seconds. Leave ample margin for transit.
+            idle.retain(|(used, _)| used.elapsed() < Duration::from_secs(1));
+            idle.pop().map(|(_, stream)| stream)
+        };
+        let mut stream = match cached {
+            Some(stream) => stream,
+            None => {
+                let config = {
+                    let mut config = self.config.lock().map_err(error)?;
+                    if config.is_none() {
+                        *config = Some(client_config(certificate)?);
+                    }
+                    config.as_ref().unwrap().clone()
+                };
+                connect(address, config)?
+            }
+        };
+        let reply = request(&mut stream, payload, true)?;
+        // Older hosts ignore the optional request flag and omit this acknowledgement.
+        if reply.keep_alive && reply.response.error.is_none() {
+            let mut idle = self.idle.lock().map_err(error)?;
+            if idle.len() < 4 {
+                idle.push((Instant::now(), stream));
+            }
+        }
+        result(reply.response)
+    }
+}
+
+#[cfg(test)]
+#[path = "tls_tests.rs"]
+mod tests;

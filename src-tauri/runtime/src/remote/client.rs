@@ -12,6 +12,8 @@ pub struct Credential {
     certificate: Vec<u8>,
     device: String,
     token: String,
+    #[serde(skip)]
+    transport: tls::Pool,
 }
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -60,6 +62,7 @@ pub fn pair(home: &Path, code: &str, name: &str) -> Result<PairedMachine> {
         certificate: invite.certificate,
         device: grant.device,
         token: grant.token,
+        transport: tls::Pool::default(),
     };
     storage::write_json(&path(home, &id)?, &credential)
         .map_err(|_| "Pairing succeeded but saving credentials failed. Revoke this device on the host and pair again.")?;
@@ -80,7 +83,7 @@ impl Credential {
         Ok(value)
     }
     pub fn call(&self, action: Action) -> Result<serde_json::Value> {
-        tls::exchange(
+        self.transport.call(
             self.address,
             &self.certificate,
             Payload::Call {

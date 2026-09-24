@@ -84,6 +84,13 @@ export default function TerminalLaunchMenu({ id, anchor, onClose, onLaunch, onCu
   }, [anchor, callbacks]);
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'Tab') {
+      requestAnimationFrame(() => {
+        if (root.current && !root.current.contains(document.activeElement))
+          callbacks.current.onClose();
+      });
+      return;
+    }
     if (event.key === 'Escape') {
       event.preventDefault();
       event.stopPropagation();
@@ -105,7 +112,11 @@ export default function TerminalLaunchMenu({ id, anchor, onClose, onLaunch, onCu
     buttons[next]?.scrollIntoView({ block: 'nearest' });
   };
   const handleBlur = (event: FocusEvent<HTMLDivElement>) => {
+    // WebKit blurs the focused option to the body on pointer-down without
+    // focusing the clicked button. Keep it mounted until its click can run.
+    // Pointer dismissal is handled by dismissOutside, not by a null focus target.
     if (
+      event.relatedTarget !== null &&
       !event.currentTarget.contains(event.relatedTarget) &&
       event.relatedTarget !== anchor.current
     )

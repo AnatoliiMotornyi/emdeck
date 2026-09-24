@@ -105,6 +105,11 @@ headless servers can host sessions without a GUI.
   secrets are stored as SHA-256 digests; invitation digests exist only in
   memory. New secrets use two random UUID v4 values, independent of the local
   capability.
+- Updated clients and hosts reuse TLS connections for interactive requests.
+  Input and output long polls use independent connections; typing is batched in
+  order while a write is in flight. Older hosts fall back to one request per
+  connection. Update both machines and restart the host session server after its
+  active work finishes to enable reuse; existing pairing credentials still work.
 - Client credentials and the server's TLS private key live in private per-user
   session storage: owner-only permissions on Unix, owner/SYSTEM ACLs on Windows.
   Browser preferences contain only an opaque credential ID and public labels.
@@ -114,8 +119,10 @@ headless servers can host sessions without a GUI.
   users still have full terminal command execution, so this is a trusted-device
   boundary, not a sandbox against the host user.
 - Input leases are namespaced by authenticated device. Frames, device count,
-  active network requests (32) and request lifetimes (40 seconds) are bounded.
-  TLS handshake/request reads have a five-second inactivity timeout.
+  active network connections (32) and individual request lifetimes (40 seconds)
+  are bounded. TLS handshake/request reads and idle connections have a
+  five-second inactivity timeout. Every reused request rechecks access, and a
+  failed request is never automatically replayed.
 - This first direct transport accepts literal Tailscale IPv4 addresses in
   `100.64.0.0/10`. MagicDNS names, IPv6, public addresses and wildcard listeners
   are not accepted. The existing SSH adapter remains available separately.

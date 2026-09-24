@@ -1,5 +1,13 @@
 # React audit — 0.1.19
 
+## Unreleased — remote terminal responsiveness and macOS launch menu
+
+React Doctor 0.9.13 reports the same eight reviewed errors and 70 warnings as
+the preceding audit, with no new diagnostics. Input batching lives in a pure
+service; its queue is disposed with the existing terminal attachment. Menu
+dismissal preserves pointer clicks in WebKit without changing terminal identity
+or launch behavior. No diagnostics were suppressed.
+
 ## Unreleased — integrate shelving and branch updates from main
 
 React Doctor 0.9.13 reports eight errors and 70 warnings after combining the
