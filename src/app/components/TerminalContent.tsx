@@ -250,11 +250,16 @@ export default function TerminalContent({
             </button>
             {workspace.visiblePanes.map(pane => {
               const handleSelect = () => workspace.selectPane(pane);
+              // Maximizing decides what the grid shows; focus decides where
+              // typing goes. In split view every pane is visible, so only
+              // the focus marker tells the two terminals apart.
+              const focused = !workspace.selectedBackground && selectedPane === pane.id;
               return (
                 <button
                   key={pane.id}
-                  className={maxPane === pane.id ? 'active' : ''}
+                  className={`${maxPane === pane.id ? 'active' : ''} ${focused ? 'focused' : ''}`}
                   aria-pressed={maxPane === pane.id}
+                  aria-current={focused}
                   onClick={handleSelect}
                 >
                   <i style={{ background: pane.color }} />
