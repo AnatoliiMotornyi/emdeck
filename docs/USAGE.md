@@ -105,10 +105,12 @@ to paste; **Ctrl+Shift+V** is also supported. Keyboard and context-menu paste
 use the same clipboard events, including images/files. Text uses bracketed paste
 when the running program enables it.
 
-**Shift+Enter** sends a distinct modified Enter key for multiline agent prompts;
-plain **Enter** keeps its normal submit behavior. The running CLI or shell
-decides how to handle that modified key. In Claude Code, **Ctrl+J** is also a
-newline shortcut with no terminal setup; see its
+**Shift+Enter** and **Ctrl+Enter** (**Cmd+Enter** on macOS) send a distinct
+modified Enter key for multiline agent prompts; plain **Enter** keeps its normal
+submit behavior. Ctrl+Enter has no encoding of its own in any terminal, so
+Emdeck sends the same modified key agents already accept. The running CLI or
+shell decides how to handle that modified key. In Claude Code, **Ctrl+J** is
+also a newline shortcut with no terminal setup; see its
 [terminal configuration guide](https://code.claude.com/docs/en/terminal-config).
 **Alt+Enter** and **Ctrl+C** continue to reach the running program unchanged.
 
@@ -116,15 +118,17 @@ newline shortcut with no terminal setup; see its
 
 The terminal toolbar also offers an optional **Workspaces** view: spaces grouped
 by working folder or remote connection, session tabs, and attention filtering.
-Session rows use amber for **Needs approval**, purple for **Waiting for
-answer**, blue for **Working** or recent **Output**, green for **Ready**, red
-for **Error**, and neutral colors for connection and lifecycle states. A
-selected row keeps its activity color in the title, outline and tinted
-background, including keyboard focus. Icons and text identify each state
-alongside the color. The **Needs attention** count and filter include both
-approvals and questions; click a row to open its terminal and respond. Use the
-monitor button to configure cmux TUI, tmux, SSH commands, or provider session
-links. Connections are always explicit. See
+The session tab of the terminal that currently receives your typing is
+underlined and highlighted, so split views stay readable; a maximized tab keeps
+its filled background, and a tab can be both at once. Session rows use amber for
+**Needs approval**, purple for **Waiting for answer**, blue for **Working** or
+recent **Output**, green for **Ready**, red for **Error**, and neutral colors
+for connection and lifecycle states. A selected row keeps its activity color in
+the title, outline and tinted background, including keyboard focus. Icons and
+text identify each state alongside the color. The **Needs attention** count and
+filter include both approvals and questions; click a row to open its terminal
+and respond. Use the monitor button to configure cmux TUI, tmux, SSH commands,
+or provider session links. Connections are always explicit. See
 [Terminal workspaces and remote sessions](REMOTE-SESSIONS.md) for setup,
 disconnect behavior, and which integrations run inside Emdeck or in a browser.
 
