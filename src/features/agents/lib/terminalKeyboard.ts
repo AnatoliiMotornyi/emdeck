@@ -13,7 +13,9 @@ export const bindTerminalKeyboard = (term: Terminal, onError: (error: unknown) =
     event.stopPropagation();
     if (event.type === 'keydown') {
       if (action === 'copy') void navigator.clipboard.writeText(term.getSelection()).catch(onError);
-      // CSI-u encodes Shift+Enter without silently submitting a plain carriage return.
+      // CSI-u encodes a line break without silently submitting a plain carriage
+      // return. Ctrl+Enter has no terminal encoding of its own, so it reuses the
+      // one agents already accept rather than inventing a sequence they ignore.
       else term.input('\x1b[13;2u', true);
     }
     return false;
