@@ -12,7 +12,13 @@ import type {
 import type { SshTarget } from '../../shared/contracts/remote';
 import type { ConflictResolution } from '../../shared/contracts/gitConflicts';
 import type { DiscardRequest } from '../../shared/contracts/gitDiscard';
+import type { demoCall } from '../preview/demo';
 export const native = isTauri();
+// Held once loaded so a later call reaches the preview without awaiting the
+// module registry again. A page being unloaded runs microtasks but not the task
+// a dynamic import resolves on, so a best-effort write on the way out only
+// survives while this stays synchronous after the first call.
+let preview: { demoCall: typeof demoCall } | null = null;
 export async function call<C extends DesktopCommand>(
   command: C,
   ...parameters: C extends 'startup_project' | 'codex_account_usage'
@@ -20,15 +26,18 @@ export async function call<C extends DesktopCommand>(
     : [args: CommandArguments<C>]
 ): Promise<CommandResult<C>> {
   const args = parameters[0] ?? {};
-  return native
-    ? invoke<CommandResult<C>>(command, args)
-    : (await import('../preview/demo')).demoCall<CommandResult<C>>(command, args);
+  if (native) return invoke<CommandResult<C>>(command, args);
+  preview ??= await import('../preview/demo');
+  return preview.demoCall<CommandResult<C>>(command, args);
 }
 export const api = {
   open: (path: string) => call('open_project', { path }),
   openWindow: (path: string) => call('open_project_window', { path }),
   focusProject: (path: string) => call('focus_project_window', { path }),
   startupProject: () => call('startup_project'),
+  readProjectConfig: (root: string) => call('read_project_config', { root }),
+  writeProjectConfig: (root: string, content: string) =>
+    call('write_project_config', { root, content }),
   list: (root: string, path = '') => call('read_directory', { root, path }),
   read: (root: string, path: string) => call('read_file', { root, path }),
   find: (root: string, name: string) => call('find_file', { root, name }),
@@ -67,7 +76,8 @@ export async function spawnTerminal(
   rows: number,
   onEvent: (event: TerminalEvent) => void,
   enhancedUsage = false,
-  remote?: SshTarget
+  remote?: SshTarget,
+  resume?: string
 ) {
   const channel = new Channel<TerminalEvent>();
   channel.onmessage = onEvent;
@@ -82,5 +92,6 @@ export async function spawnTerminal(
     rows,
     onEvent: channel,
     enhancedUsage,
+    resume: resume ?? null,
   });
 }

@@ -116,6 +116,12 @@ export async function demoCall<T>(command: string, args: Record<string, unknown>
         commits: [],
       } satisfies GitSnapshot;
       break;
+    case 'read_project_config':
+      result = readStored<string | null>('relay:demo-project-config', null);
+      break;
+    case 'write_project_config':
+      store('relay:demo-project-config', String(args.content ?? ''));
+      break;
     case 'shelf_list':
       // Shelving needs Git and a real filesystem, so the preview has nothing
       // to list. The mutations fall through to the message below.

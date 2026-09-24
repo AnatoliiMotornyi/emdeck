@@ -137,7 +137,12 @@ pub fn observe(current: &AgentInfo, screen: &str) -> AgentInfo {
 }
 
 pub fn resume_args(info: &AgentInfo) -> Option<Vec<String>> {
-    let session = info.session_id.as_ref()?;
+    resume_command(&info.kind, info.session_id.as_deref())
+}
+
+// The id reaches a shell as an argument, so the charset stays free of shell metacharacters.
+pub fn resume_command(kind: &str, session: Option<&str>) -> Option<Vec<String>> {
+    let session = session?;
     if !session
         .as_bytes()
         .first()
@@ -149,9 +154,9 @@ pub fn resume_args(info: &AgentInfo) -> Option<Vec<String>> {
     {
         return None;
     }
-    match info.kind.as_str() {
-        "claude" => Some(vec!["claude".into(), "--resume".into(), session.clone()]),
-        "codex" => Some(vec!["codex".into(), "resume".into(), session.clone()]),
+    match kind {
+        "claude" => Some(vec!["claude".into(), "--resume".into(), session.to_owned()]),
+        "codex" => Some(vec!["codex".into(), "resume".into(), session.to_owned()]),
         _ => None,
     }
 }

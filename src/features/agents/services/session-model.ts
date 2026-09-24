@@ -8,7 +8,7 @@ export const localMachine: MachineProfile = {
 export const restoreMachines = (value: unknown): MachineProfile[] => {
   if (!Array.isArray(value)) return [localMachine];
   const found: MachineProfile[] = [];
-  for (const profile of value.slice(0, 16)) {
+  for (const profile of value.slice(0, 65)) {
     if (
       !profile ||
       typeof profile !== 'object' ||

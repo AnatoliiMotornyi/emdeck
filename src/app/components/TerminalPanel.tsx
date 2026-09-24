@@ -34,10 +34,9 @@ export default function TerminalPanel({ model }: Props) {
     } else setAgentPreferences(value => ({ ...value, visible: !value.visible }));
   };
   const handleFullWidthTerminalPanelClick = () =>
-    setSettings(previous => ({
-      ...previous,
-      terminalPlacement: previous.terminalPlacement === 'workspace' ? 'editor' : 'workspace',
-    }));
+    updateSettings({
+      terminalPlacement: settings.terminalPlacement === 'workspace' ? 'editor' : 'workspace',
+    });
   const handleAgentMenuClick = () => setAgentMenu(s => !s);
   const handleAgentMenuClick2 = () => setAgentMenu(false);
   const handleClick = () => void customPane();
@@ -56,7 +55,7 @@ export default function TerminalPanel({ model }: Props) {
     layout,
     setLayout,
     settings,
-    setSettings,
+    updateSettings,
     project,
     setAgentMenu,
     agentMenu,

@@ -154,6 +154,7 @@ export default function SessionSidebar({
             });
           const handleConnect = () => void onConnect(machine.profile);
           const handleDisconnect = () => onDisconnect(machine.profile.id);
+          const handleRename = (name: string) => onSave({ ...machine.profile, name });
           const handleRemove = () =>
             void onRemove(machine.profile.id).catch(error => onError(String(error)));
           return (
@@ -168,6 +169,7 @@ export default function SessionSidebar({
               onToggle={handleFold}
               onConnect={handleConnect}
               onDisconnect={handleDisconnect}
+              onRename={handleRename}
               onRemove={handleRemove}
               onWorkspace={onWorkspace}
               onAttach={onAttach}

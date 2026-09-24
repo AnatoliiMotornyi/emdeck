@@ -4,7 +4,7 @@ mod host;
 mod tls;
 mod types;
 
-pub use client::{forget, pair, Credential, PairedMachine};
+pub use client::{forget, pair, saved_machines, Credential, PairedMachine};
 pub use host::Host;
 pub use types::{Management, Status};
 

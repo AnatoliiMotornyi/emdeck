@@ -80,7 +80,7 @@ export const useSessionDesk = (active: boolean) => {
     visibleKeys,
     space,
     solo,
-    error,
+    error: error || controller.storageError,
     stop,
     setError,
     setStop,

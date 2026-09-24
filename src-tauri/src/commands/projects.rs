@@ -1,3 +1,4 @@
+use crate::services::project_config;
 use crate::services::project_identity::canonical_folder;
 use crate::services::workspace::{err, Result};
 use crate::{state::Projects, windows};
@@ -68,4 +69,23 @@ pub(crate) async fn focus_project_window(
     path: String,
 ) -> Result<Option<String>> {
     windows::focus_existing(&app, window.label(), Path::new(&path))
+}
+
+#[tauri::command]
+pub(crate) async fn read_project_config(
+    window: tauri::Window,
+    root: String,
+    projects: State<'_, Projects>,
+) -> Result<Option<String>> {
+    project_config::read(&projects.root(window.label(), &root)?)
+}
+
+#[tauri::command]
+pub(crate) async fn write_project_config(
+    window: tauri::Window,
+    root: String,
+    content: String,
+    projects: State<'_, Projects>,
+) -> Result<()> {
+    project_config::write(&projects.root(window.label(), &root)?, &content)
 }

@@ -1,6 +1,6 @@
-use super::{TerminalEvent, Terminals};
+use super::test_support::HeadlessTerminal;
 use std::os::windows::process::CommandExt;
-use std::{fs, path::PathBuf, process::Command, time::Duration};
+use std::{fs, path::PathBuf, process::Command};
 
 #[test]
 fn inherits_launch_path() {
@@ -45,36 +45,10 @@ fn inherits_launch_path() {
         return;
     }
 
-    let terminals = Terminals::default();
-    let (tx, rx) = std::sync::mpsc::channel();
-    let id = terminals
-        .spawn(
-            &std::env::current_dir().unwrap(),
-            "",
-            "emdeck-path-regression-fixture.exe /D /C echo EMDECK_LAUNCH_PATH_OK; if ($env:TEMP -ne $env:EMDECK_EXPECTED_TEMP) { exit 3 }; exit $LASTEXITCODE",
-            100,
-            30,
-            move |event| tx.send(event).is_ok(),
-        )
-        .unwrap();
-    let mut output = Vec::new();
-    loop {
-        match rx.recv_timeout(Duration::from_secs(15)).unwrap() {
-            TerminalEvent::Data { data } => {
-                output.extend(data);
-                if output.windows(4).any(|bytes| bytes == b"\x1b[6n") {
-                    let _ = terminals.write(&id, "\x1b[1;1R");
-                }
-            }
-            TerminalEvent::Exit { code } => {
-                assert_eq!(code, Some(0), "{}", String::from_utf8_lossy(&output));
-                break;
-            }
-            TerminalEvent::Usage { .. } | TerminalEvent::Command { .. } => {
-                panic!("A plain shell must not create agent probes")
-            }
-        }
-    }
+    let mut terminal = HeadlessTerminal::spawn(
+        &std::env::current_dir().unwrap(),
+        "emdeck-path-regression-fixture.exe /D /C echo EMDECK_LAUNCH_PATH_OK; if ($env:TEMP -ne $env:EMDECK_EXPECTED_TEMP) { exit 3 }; exit $LASTEXITCODE",
+    );
+    let output = terminal.finish();
     assert!(String::from_utf8_lossy(&output).contains("EMDECK_LAUNCH_PATH_OK"));
-    assert!(terminals.sessions.lock().unwrap().is_empty());
 }

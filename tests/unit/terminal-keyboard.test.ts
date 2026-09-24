@@ -19,10 +19,17 @@ describe('terminal keyboard ownership', () => {
   });
 
   it('distinguishes multiline input, submit, interrupt, literal typing and agent shortcuts', () => {
-    expect(terminalKeyAction({ ...key, key: 'Enter', shiftKey: true })).toBe('shift-enter');
+    for (const event of [
+      { key: 'Enter', shiftKey: true },
+      { key: 'Enter', ctrlKey: true },
+      { key: 'Enter', metaKey: true },
+      { key: 'Enter', ctrlKey: true, shiftKey: true },
+    ])
+      expect(terminalKeyAction({ ...key, ...event })).toBe('newline');
     for (const event of [
       { key: 'Enter' },
       { key: 'Enter', altKey: true },
+      { key: 'Enter', ctrlKey: true, altKey: true },
       { key: 'j', ctrlKey: true },
       { key: 'c', ctrlKey: true },
       { key: 'v' },
@@ -35,6 +42,9 @@ describe('terminal keyboard ownership', () => {
 
   it('preserves IME composition and keeps copy and Run separate from terminal input', () => {
     expect(terminalKeyAction({ ...key, key: 'Enter', shiftKey: true, isComposing: true })).toBe(
+      'terminal'
+    );
+    expect(terminalKeyAction({ ...key, key: 'Enter', ctrlKey: true, isComposing: true })).toBe(
       'terminal'
     );
     expect(terminalKeyAction({ ...key, key: 'C', ctrlKey: true, shiftKey: true })).toBe('copy');

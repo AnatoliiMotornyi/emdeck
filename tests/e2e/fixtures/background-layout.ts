@@ -126,6 +126,10 @@ export const openBackgroundPanes = async (page: Page) => {
   await page.getByTitle('Expand terminals', { exact: true }).click();
   await expect(page.locator('.session-terminal:visible')).toHaveCount(4);
   await expect.poll(() => page.locator('.session-terminal .xterm-screen').count()).toBe(4);
+  // Panes project at their 230x170 minimum until the canvas ResizeObserver fires.
+  await expect
+    .poll(async () => (await backgroundPane(page, 'local/0').boundingBox())?.height ?? 0)
+    .toBeGreaterThan(170);
 };
 export const backgroundCalls = (page: Page) =>
   page.evaluate(

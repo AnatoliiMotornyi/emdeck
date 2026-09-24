@@ -55,6 +55,17 @@ automatically start an agent.
 
 ## Manage access
 
+Saved background machines survive app updates and separate preview profiles.
+Their names and connection metadata live in `machines.json` under the private
+session directory (`%LOCALAPPDATA%\Emdeck\sessions` on Windows, or
+`${XDG_STATE_HOME:-~/.local/state}/emdeck/sessions` on macOS/Linux). Existing
+browser-only profiles migrate when Background sessions opens. If that browser
+profile is missing, Emdeck recovers saved Tailscale pairings by address; choose
+**Machine settings → Saved machine name → Save name** to label them. Select
+**Connect** to reconnect a recovered machine; a new pairing code is not
+required. The project `.emdeck/settings.json` contains project preferences, not
+machine credentials. Custom `EMDECK_SESSION_HOME` locations remain separate.
+
 On the desktop, open the sharing controls and select **Refresh paired devices**.
 **Revoke** removes one device's credential after confirmation. **Disable
 sharing** closes the network listener and cancels pending pairing codes. Neither
@@ -112,9 +123,10 @@ headless servers can host sessions without a GUI.
   active work finishes to enable reuse; existing pairing credentials still work.
 - Client credentials and the server's TLS private key live in private per-user
   session storage: owner-only permissions on Unix, owner/SYSTEM ACLs on Windows.
-  Browser preferences contain only an opaque credential ID and public labels.
-  Pairing codes are transient UI state, cleared after submitting or closing the
-  sharing controls. They are not saved in browser storage.
+  Browser preferences and the native machine registry contain only an opaque
+  credential ID and public labels/connection metadata. Pairing codes are
+  transient UI state, cleared after submitting or closing the sharing controls.
+  They are not saved in browser storage.
 - Remote requests cannot change sharing settings or stop the server. Paired
   users still have full terminal command execution, so this is a trusted-device
   boundary, not a sandbox against the host user.

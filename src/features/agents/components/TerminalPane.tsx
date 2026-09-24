@@ -244,7 +244,8 @@ export default function TerminalPane({
             }
           },
           enhancedUsage,
-          pane.remote?.target
+          pane.remote?.target,
+          pane.resume
         );
         if (disposed) {
           await call('terminal_close', { id });
