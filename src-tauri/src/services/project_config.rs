@@ -1,25 +1,24 @@
-use crate::services::workspace::{err, Result};
-use std::{
-    fs,
-    io::Write,
-    path::{Path, PathBuf},
-};
+use crate::services::workspace::{err, resolve, Result};
+use std::{fs, io::Write, path::Path};
 
 const DIR: &str = ".emdeck";
 const FILE: &str = "settings.json";
 const IGNORE: &str = "*\n";
 const MAX_CONFIG_SIZE: u64 = 1024 * 1024;
 
-fn folder(root: &Path) -> PathBuf {
-    root.join(DIR)
+// A cloned project can commit `.emdeck` or its files as symlinks, so every path
+// is resolved through the same containment check as ordinary project files.
+fn file() -> String {
+    format!("{DIR}/{FILE}")
 }
 
 /// Returns `None` when the project has never stored settings.
 pub fn read(root: &Path) -> Result<Option<String>> {
-    let path = folder(root).join(FILE);
-    let Ok(metadata) = fs::metadata(&path) else {
+    if !root.join(DIR).join(FILE).exists() {
         return Ok(None);
-    };
+    }
+    let path = resolve(root, &file(), false)?;
+    let metadata = fs::metadata(&path).map_err(err)?;
     if metadata.len() > MAX_CONFIG_SIZE {
         return Err("Project configuration exceeds the 1 MB limit.".into());
     }
@@ -33,17 +32,19 @@ pub fn write(root: &Path, content: &str) -> Result<()> {
     if content.len() as u64 > MAX_CONFIG_SIZE {
         return Err("Project configuration exceeds the 1 MB limit.".into());
     }
-    let dir = folder(root);
+    let dir = resolve(root, DIR, true)?;
     fs::create_dir_all(&dir).map_err(err)?;
+    let path = resolve(root, &file(), true)?;
     seed_ignore(&dir)?;
-    persist(&dir.join(FILE), content)
+    persist(&path, content)
 }
 
 /// A `*` pattern ignores every file in the folder including this one, so the
 /// directory never reaches `git status` and no tracked file is modified.
 fn seed_ignore(dir: &Path) -> Result<()> {
     let path = dir.join(".gitignore");
-    if path.exists() {
+    // symlink_metadata sees a dangling link too, so the write never follows one.
+    if fs::symlink_metadata(&path).is_ok() {
         return Ok(());
     }
     fs::write(&path, IGNORE).map_err(err)

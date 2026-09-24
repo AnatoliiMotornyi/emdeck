@@ -5,7 +5,8 @@ fn temp_root(name: &str) -> std::path::PathBuf {
     let root = std::env::temp_dir().join(format!("emdeck-config-{name}"));
     let _ = fs::remove_dir_all(&root);
     fs::create_dir_all(&root).unwrap();
-    root
+    // Opened projects are canonical, and containment compares against that form.
+    root.canonicalize().unwrap()
 }
 
 #[test]
@@ -59,4 +60,31 @@ fn reports_non_utf8_contents_as_an_error_rather_than_panicking() {
     fs::create_dir_all(root.join(".emdeck")).unwrap();
     fs::write(root.join(".emdeck/settings.json"), [0xff, 0xfe, 0x00]).unwrap();
     assert!(read(&root).is_err());
+}
+
+#[cfg(unix)]
+#[test]
+fn refuses_a_committed_symlink_that_leads_outside_the_project() {
+    let root = temp_root("escape-dir");
+    let outside = temp_root("escape-dir-target");
+    std::os::unix::fs::symlink(&outside, root.join(".emdeck")).unwrap();
+    assert!(write(
+        &root, "{}
+"
+    )
+    .is_err());
+    assert!(fs::read_dir(&outside).unwrap().next().is_none());
+
+    let root = temp_root("escape-file");
+    let secret = outside.join("secret.json");
+    fs::write(&secret, "private").unwrap();
+    fs::create_dir_all(root.join(".emdeck")).unwrap();
+    std::os::unix::fs::symlink(&secret, root.join(".emdeck/settings.json")).unwrap();
+    assert!(read(&root).is_err());
+    assert!(write(
+        &root, "{}
+"
+    )
+    .is_err());
+    assert_eq!(fs::read_to_string(&secret).unwrap(), "private");
 }
