@@ -30,6 +30,7 @@ type Dependencies = Pick<ReturnType<typeof useTabActions>, 'saveCurrentFile' | '
     | 'latest'
     | 'mergeDraftDirty'
     | 'confirm'
+    | 'flushProjectConfig'
   >;
 export function useWorkspaceLifecycle({
   saveCurrentFile,
@@ -52,6 +53,7 @@ export function useWorkspaceLifecycle({
   latest,
   mergeDraftDirty,
   confirm,
+  flushProjectConfig,
 }: Dependencies) {
   const handlers = useLatest({
     saveCurrentFile,
@@ -62,6 +64,7 @@ export function useWorkspaceLifecycle({
     runSelected,
     toggleSidebar,
     active,
+    flushProjectConfig,
   });
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
@@ -122,6 +125,9 @@ export function useWorkspaceLifecycle({
           const stop = await win.onCloseRequested(async event => {
             // Own the whole close operation, including errors and repeated requests.
             event.preventDefault();
+            // Start the debounced project write before anything can destroy the
+            // window, so a setting changed moments ago still reaches the disk.
+            handlers.current.flushProjectConfig();
             if (closePending || disposed) return;
             closePending = true;
             try {

@@ -12,7 +12,13 @@ import type {
 import type { SshTarget } from '../../shared/contracts/remote';
 import type { ConflictResolution } from '../../shared/contracts/gitConflicts';
 import type { DiscardRequest } from '../../shared/contracts/gitDiscard';
+import type { demoCall } from '../preview/demo';
 export const native = isTauri();
+// Held once loaded so a later call reaches the preview without awaiting the
+// module registry again. A page being unloaded runs microtasks but not the task
+// a dynamic import resolves on, so a best-effort write on the way out only
+// survives while this stays synchronous after the first call.
+let preview: { demoCall: typeof demoCall } | null = null;
 export async function call<C extends DesktopCommand>(
   command: C,
   ...parameters: C extends 'startup_project' | 'codex_account_usage'
@@ -20,9 +26,9 @@ export async function call<C extends DesktopCommand>(
     : [args: CommandArguments<C>]
 ): Promise<CommandResult<C>> {
   const args = parameters[0] ?? {};
-  return native
-    ? invoke<CommandResult<C>>(command, args)
-    : (await import('../preview/demo')).demoCall<CommandResult<C>>(command, args);
+  if (native) return invoke<CommandResult<C>>(command, args);
+  preview ??= await import('../preview/demo');
+  return preview.demoCall<CommandResult<C>>(command, args);
 }
 export const api = {
   open: (path: string) => call('open_project', { path }),

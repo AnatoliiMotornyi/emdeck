@@ -60,7 +60,26 @@ export function useProjectConfig(project: Project | null, fail: (error: unknown)
       cancelled = true;
     };
   }, [root, flush, fail]);
-  useEffect(() => () => clearTimeout(timer.current), []);
+  useEffect(() => {
+    // A quit or a reload can land inside the debounce window. `pagehide` and the
+    // hidden visibility state are the points a browser reliably still runs code
+    // at; `beforeunload` is not. The desktop close path calls `flush` itself
+    // from the existing tauri://close-requested handler, early enough that the
+    // write is in flight before the window can be destroyed.
+    const hide = () => {
+      if (document.visibilityState === 'hidden') flush();
+    };
+    document.addEventListener('visibilitychange', hide);
+    window.addEventListener('pagehide', flush);
+    return () => {
+      document.removeEventListener('visibilitychange', hide);
+      window.removeEventListener('pagehide', flush);
+      // Drain rather than discard: cancelling the timer alone loses the edit.
+      // Draining early if `flush` ever changes identity is harmless, because the
+      // queued record carries the root it belongs to.
+      flush();
+    };
+  }, [flush]);
   const queue = useCallback(
     (change: (previous: ProjectConfig) => ProjectConfig) => {
       setState(previous => {
@@ -95,5 +114,6 @@ export function useProjectConfig(project: Project | null, fail: (error: unknown)
     ready: state.ready && current,
     setOverrides,
     setRuns,
+    flush,
   };
 }

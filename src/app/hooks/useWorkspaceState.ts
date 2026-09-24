@@ -225,6 +225,7 @@ export function useWorkspaceState() {
     updateSettings,
     resetOverride,
     projectScopeAvailable,
+    flushProjectConfig: config.flush,
     sidebar,
     setSidebar,
     sidebarVisible,
