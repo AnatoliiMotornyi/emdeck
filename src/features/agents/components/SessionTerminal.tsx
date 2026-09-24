@@ -8,6 +8,7 @@ import { sessionCall } from '../../../platform/desktop/sessions';
 import type { SessionPane, SessionRead } from '../../../shared/contracts/sessions';
 import type { Settings } from '../../../shared/contracts/workspace';
 import { terminalInput } from '../services/session-model';
+import { createSessionInput } from '../services/session-input';
 import { createTerminalFitter } from '../services/terminal-fit';
 import { bindTerminalAttachments } from '../lib/terminalAttachments';
 import { bindTerminalKeyboard } from '../lib/terminalKeyboard';
@@ -104,17 +105,13 @@ export default function SessionTerminal({
     resizeCurrent.current = resize;
     observer.observe(host.current);
     const heartbeat = setInterval(resize, 15000);
-    let inputQueue = Promise.resolve();
+    const inputQueue = createSessionInput(async text => {
+      if (!disposed && owned)
+        await sessionCall(connection, 'pane.input', { id: pane.id, client, text });
+    }, report);
     const input = term.onData(text => {
       text = terminalInput(text);
-      if (owned && text) {
-        inputQueue = inputQueue
-          .then(async () => {
-            if (!disposed && owned)
-              await sessionCall(connection, 'pane.input', { id: pane.id, client, text });
-          })
-          .catch(report);
-      }
+      if (owned && text) inputQueue.push(text);
     });
     const start = async () => {
       setError('');
@@ -155,6 +152,7 @@ export default function SessionTerminal({
     return () => {
       disposed = true;
       owned = false;
+      inputQueue.stop();
       clearInterval(heartbeat);
       observer.disconnect();
       input.dispose();

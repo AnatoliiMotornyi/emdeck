@@ -128,4 +128,14 @@ pub(super) struct Request {
     pub version: u32,
     pub id: String,
     pub payload: Payload,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub keep_alive: bool,
+}
+
+#[derive(Serialize, Deserialize)]
+pub(super) struct Reply {
+    #[serde(flatten)]
+    pub response: crate::protocol::Response,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub keep_alive: bool,
 }

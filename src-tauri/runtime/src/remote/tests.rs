@@ -105,6 +105,99 @@ impl Drop for Fixture {
 }
 
 #[test]
+fn pooled_calls_reuse_tls_and_revalidate_revoked_access_on_the_same_connection() {
+    let fixture = Fixture::new();
+    let invite = fixture.invite();
+    let grant = fixture.pair(&invite);
+    let pool = tls::Pool::default();
+    let call = |action| {
+        pool.call(
+            fixture.address,
+            &invite.certificate,
+            Payload::Call {
+                device: grant["device"].as_str().unwrap().into(),
+                token: grant["token"].as_str().unwrap().into(),
+                action,
+            },
+        )
+    };
+    let before = fixture.host.test_accepted();
+    for _ in 0..8 {
+        assert!(call(Action::Ping).is_ok());
+    }
+    assert_eq!(fixture.host.test_accepted() - before, 1);
+    fixture
+        .host
+        .manage(Management::Revoke {
+            id: grant["device"].as_str().unwrap().into(),
+        })
+        .unwrap();
+    assert!(call(Action::Ping).unwrap_err().contains("revoked"));
+    assert_eq!(fixture.host.test_accepted() - before, 1);
+}
+
+#[test]
+fn pooled_long_poll_does_not_hold_up_other_requests_and_sharing_disable_denies_reuse() {
+    let fixture = Fixture::new();
+    let invite = fixture.invite();
+    let grant = fixture.pair(&invite);
+    let pool = tls::Pool::default();
+    let call = |action| {
+        pool.call(
+            fixture.address,
+            &invite.certificate,
+            Payload::Call {
+                device: grant["device"].as_str().unwrap().into(),
+                token: grant["token"].as_str().unwrap().into(),
+                action,
+            },
+        )
+    };
+    let snapshot = call(Action::Snapshot {
+        after: None,
+        wait_ms: 0,
+    })
+    .unwrap();
+    let before = fixture.host.test_accepted();
+    thread::scope(|scope| {
+        let waiting = scope.spawn(|| {
+            call(Action::Snapshot {
+                after: snapshot["revision"].as_u64(),
+                wait_ms: 20000,
+            })
+        });
+        let deadline = Instant::now() + Duration::from_secs(5);
+        while pool.idle_count() != 0 {
+            assert!(
+                Instant::now() < deadline,
+                "Long poll did not take a connection"
+            );
+            thread::sleep(Duration::from_millis(1));
+        }
+        let ping = call(Action::Ping).unwrap();
+        assert!(ping["serverId"].is_string());
+        // A mutation releases the snapshot. If a pool lock covered either RPC,
+        // the pending snapshot would time out before the mutation could run.
+        assert!(!waiting.is_finished());
+        call(Action::WorkspaceCreate {
+            root: fixture.home.path().to_string_lossy().into(),
+            name: "Concurrent change".into(),
+        })
+        .unwrap();
+        assert_eq!(
+            waiting.join().unwrap().unwrap()["workspaces"]
+                .as_array()
+                .unwrap()
+                .len(),
+            1
+        );
+    });
+    assert_eq!(fixture.host.test_accepted() - before, 1);
+    fixture.host.manage(Management::Disable).unwrap();
+    assert!(call(Action::Ping).unwrap_err().contains("disabled"));
+}
+
+#[test]
 fn tls_pairing_is_single_use_revocable_and_keeps_local_capabilities_private() {
     let fixture = Fixture::new();
     let invite = fixture.invite();
