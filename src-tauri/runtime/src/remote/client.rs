@@ -12,6 +12,8 @@ pub struct Credential {
     certificate: Vec<u8>,
     device: String,
     token: String,
+    #[serde(skip)]
+    transport: tls::Pool,
 }
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -60,6 +62,7 @@ pub fn pair(home: &Path, code: &str, name: &str) -> Result<PairedMachine> {
         certificate: invite.certificate,
         device: grant.device,
         token: grant.token,
+        transport: tls::Pool::default(),
     };
     storage::write_json(&path(home, &id)?, &credential)
         .map_err(|_| "Pairing succeeded but saving credentials failed. Revoke this device on the host and pair again.")?;
@@ -80,7 +83,7 @@ impl Credential {
         Ok(value)
     }
     pub fn call(&self, action: Action) -> Result<serde_json::Value> {
-        tls::exchange(
+        self.transport.call(
             self.address,
             &self.certificate,
             Payload::Call {
@@ -97,4 +100,30 @@ pub fn forget(home: &Path, id: &str) -> Result<()> {
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
         Err(e) => Err(error(e)),
     }
+}
+
+/// Public metadata only: credentials never leave native private storage.
+pub fn saved_machines(home: &Path) -> Result<Vec<PairedMachine>> {
+    let mut saved = Vec::new();
+    for entry in std::fs::read_dir(directory(home)?)
+        .map_err(error)?
+        .take(256)
+    {
+        let path = entry.map_err(error)?.path();
+        if path.extension().is_none_or(|extension| extension != "json") {
+            continue;
+        }
+        let Some(id) = path.file_stem().and_then(|id| id.to_str()) else {
+            continue;
+        };
+        // Ignore invalid/replaced entries without exposing or modifying their contents.
+        if let Ok(credential) = Credential::load(home, id) {
+            saved.push(PairedMachine {
+                credential: id.to_owned(),
+                address: credential.address.to_string(),
+            });
+        }
+    }
+    saved.sort_by(|a, b| a.credential.cmp(&b.credential));
+    Ok(saved)
 }

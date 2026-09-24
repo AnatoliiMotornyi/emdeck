@@ -3,6 +3,35 @@ use emdeck_session::{protocol::Action, Result};
 use tauri::Manager;
 
 #[tauri::command]
+pub(crate) async fn session_machines_load(
+    legacy: Vec<emdeck_session::machines::Profile>,
+) -> Result<Vec<emdeck_session::machines::Profile>> {
+    tauri::async_runtime::spawn_blocking(move || {
+        emdeck_session::machines::load(&emdeck_session::storage::home()?, legacy)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+pub(crate) async fn session_machine_save(profile: emdeck_session::machines::Profile) -> Result<()> {
+    tauri::async_runtime::spawn_blocking(move || {
+        emdeck_session::machines::save(&emdeck_session::storage::home()?, profile)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+pub(crate) async fn session_machine_remove(id: String) -> Result<()> {
+    tauri::async_runtime::spawn_blocking(move || {
+        emdeck_session::machines::remove(&emdeck_session::storage::home()?, &id)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
 pub(crate) async fn session_pair(
     code: String,
     name: String,

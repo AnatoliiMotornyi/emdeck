@@ -1,5 +1,25 @@
 # React audit — 0.1.19
 
+## Unreleased — project settings promotion and durable machines
+
+React Doctor 0.9.13 reports eight previously reviewed errors and 72 warnings
+after integrating dev's project settings and terminal changes. New diagnostics
+relative to the previous main audit concern App composition, Settings size and
+the run-preference persistence effect. These remain within repository budgets;
+the effect feeds the app-owned project writer and its restore dependencies
+deliberately avoid a save/restore loop. The machine hook and card retain their
+existing iteration and complexity advisories. Native profile IO stays outside
+React state updaters, and recovering or renaming a machine does not mount or
+restart terminals. No diagnostics were suppressed.
+
+## Unreleased — remote terminal responsiveness and macOS launch menu
+
+React Doctor 0.9.13 reports the same eight reviewed errors and 70 warnings as
+the preceding audit, with no new diagnostics. Input batching lives in a pure
+service; its queue is disposed with the existing terminal attachment. Menu
+dismissal preserves pointer clicks in WebKit without changing terminal identity
+or launch behavior. No diagnostics were suppressed.
+
 ## Unreleased — integrate shelving and branch updates from main
 
 React Doctor 0.9.13 reports eight errors and 70 warnings after combining the

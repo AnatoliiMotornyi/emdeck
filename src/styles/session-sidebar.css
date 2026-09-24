@@ -247,6 +247,27 @@
 .session-machine-settings .session-machine-actions {
   margin-top: 8px;
 }
+.session-machine-name {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+}
+.session-machine-name label {
+  display: grid;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.session-machine-name input {
+  width: 100%;
+  min-width: 0;
+}
+.session-machine-name button {
+  justify-self: start;
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
 .session-machines .session-machine-actions button {
   color: var(--text);
   border: 1px solid var(--border);

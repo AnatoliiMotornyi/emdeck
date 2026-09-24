@@ -55,6 +55,17 @@ automatically start an agent.
 
 ## Manage access
 
+Saved background machines survive app updates and separate preview profiles.
+Their names and connection metadata live in `machines.json` under the private
+session directory (`%LOCALAPPDATA%\Emdeck\sessions` on Windows, or
+`${XDG_STATE_HOME:-~/.local/state}/emdeck/sessions` on macOS/Linux). Existing
+browser-only profiles migrate when Background sessions opens. If that browser
+profile is missing, Emdeck recovers saved Tailscale pairings by address; choose
+**Machine settings → Saved machine name → Save name** to label them. Select
+**Connect** to reconnect a recovered machine; a new pairing code is not
+required. The project `.emdeck/settings.json` contains project preferences, not
+machine credentials. Custom `EMDECK_SESSION_HOME` locations remain separate.
+
 On the desktop, open the sharing controls and select **Refresh paired devices**.
 **Revoke** removes one device's credential after confirmation. **Disable
 sharing** closes the network listener and cancels pending pairing codes. Neither
@@ -105,17 +116,25 @@ headless servers can host sessions without a GUI.
   secrets are stored as SHA-256 digests; invitation digests exist only in
   memory. New secrets use two random UUID v4 values, independent of the local
   capability.
+- Updated clients and hosts reuse TLS connections for interactive requests.
+  Input and output long polls use independent connections; typing is batched in
+  order while a write is in flight. Older hosts fall back to one request per
+  connection. Update both machines and restart the host session server after its
+  active work finishes to enable reuse; existing pairing credentials still work.
 - Client credentials and the server's TLS private key live in private per-user
   session storage: owner-only permissions on Unix, owner/SYSTEM ACLs on Windows.
-  Browser preferences contain only an opaque credential ID and public labels.
-  Pairing codes are transient UI state, cleared after submitting or closing the
-  sharing controls. They are not saved in browser storage.
+  Browser preferences and the native machine registry contain only an opaque
+  credential ID and public labels/connection metadata. Pairing codes are
+  transient UI state, cleared after submitting or closing the sharing controls.
+  They are not saved in browser storage.
 - Remote requests cannot change sharing settings or stop the server. Paired
   users still have full terminal command execution, so this is a trusted-device
   boundary, not a sandbox against the host user.
 - Input leases are namespaced by authenticated device. Frames, device count,
-  active network requests (32) and request lifetimes (40 seconds) are bounded.
-  TLS handshake/request reads have a five-second inactivity timeout.
+  active network connections (32) and individual request lifetimes (40 seconds)
+  are bounded. TLS handshake/request reads and idle connections have a
+  five-second inactivity timeout. Every reused request rechecks access, and a
+  failed request is never automatically replayed.
 - This first direct transport accepts literal Tailscale IPv4 addresses in
   `100.64.0.0/10`. MagicDNS names, IPv6, public addresses and wildcard listeners
   are not accepted. The existing SSH adapter remains available separately.

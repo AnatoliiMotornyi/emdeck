@@ -21,6 +21,12 @@ test.beforeEach(async ({ page }) => {
     state.__TAURI_INTERNALS__.invoke = async (command, args = {}) => {
       if (!command.startsWith('session_')) return original(command, args);
       state.__remoteCalls.push({ command, args });
+      if (
+        ['session_machines_load', 'session_machine_save', 'session_machine_remove'].includes(
+          command
+        )
+      )
+        return original(command, args);
       if (command === 'session_pair') {
         if (args.code === 'expired-fixture')
           throw new Error('Pairing code is invalid, expired or already used.');
@@ -76,7 +82,7 @@ test('sharing is explicit, pairing saves no secrets, and revocation leaves sessi
           }
         ).__remoteCalls
     );
-  expect(await calls()).toHaveLength(0);
+  expect((await calls()).filter(call => call.command !== 'session_machines_load')).toHaveLength(0);
   await rail.getByRole('button', { name: 'Connect local server', exact: true }).click();
   await rail.getByText('Machine settings', { exact: true }).click();
   await rail.getByText('Share this computer over Tailscale', { exact: true }).click();
