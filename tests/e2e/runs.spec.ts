@@ -21,6 +21,10 @@ test.beforeEach(async ({ page }) => {
     };
     let callback = 0;
     let terminal = 0;
+    // One key per project root, mirroring .emdeck/settings.json on the native
+    // side: two projects can never share one blob, an unwritten project reads
+    // null, and the value survives a reload the way a file does.
+    const configKey = (root: unknown) => `test:project-config:${String(root)}`;
     state.__TAURI_EVENT_PLUGIN_INTERNALS__ = { unregisterListener: () => {} };
     state.__TAURI_INTERNALS__ = {
       metadata: { currentWindow: { label: 'main' }, currentWebview: { label: 'main' } },
@@ -38,6 +42,15 @@ test.beforeEach(async ({ page }) => {
             };
           case 'plugin:dialog|open':
             return '/projects/second';
+          case 'read_project_config':
+            return localStorage.getItem(configKey(args.root));
+          case 'write_project_config': {
+            const content = String(args.content ?? '');
+            // The 1 MB ceiling the Rust service enforces.
+            if (content.length > 1024 * 1024) throw 'Project configuration exceeds the 1 MB limit.';
+            localStorage.setItem(configKey(args.root), content);
+            return null;
+          }
           case 'read_directory':
             return Object.keys(state.__runFiles).map(name => ({
               name,

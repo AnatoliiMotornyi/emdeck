@@ -391,6 +391,24 @@ Embedded HTML is displayed as text rather than executed. Documents larger than
 one million characters remain available in Edit without rendering a preview.
 View choices are retained for the currently open tabs.
 
+## Project and global settings
+
+Settings has two scopes. **This project** writes only the values you change for
+the project that is open; **All projects** edits the global defaults every
+project inherits. A value you have overridden for the project is labelled
+**Overridden · Reset to global**; selecting that label drops the override and
+the project follows the global default again. **Reset project overrides** clears
+them all at once. Startup behaviour has no project scope, so it appears only
+under All projects.
+
+Project overrides live in `.emdeck/settings.json` in the project root, beside a
+`.emdeck/.gitignore` containing `*`, which keeps the folder and the file out of
+Git without modifying any tracked file. Only the keys you changed are written,
+so a project that follows your defaults stays minimal. Deleting the `.emdeck/`
+folder restores the global defaults for that project. A file Emdeck cannot read
+is left untouched so you can repair it by hand; global settings are used in the
+meantime.
+
 ## Script detection and run preferences
 
 Automatic detection reads `package.json` and the names of files in the project

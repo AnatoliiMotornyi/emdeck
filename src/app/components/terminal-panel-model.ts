@@ -14,7 +14,7 @@ export type TerminalPanelModel = Pick<
   | 'setLayout'
   | 'setMaxPane'
   | 'settings'
-  | 'setSettings'
+  | 'updateSettings'
   | 'project'
   | 'setAgentMenu'
   | 'agentMenu'

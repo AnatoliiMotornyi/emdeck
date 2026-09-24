@@ -83,6 +83,8 @@ pub fn run() {
             commands::projects::startup_project,
             commands::projects::open_project_window,
             commands::projects::focus_project_window,
+            commands::projects::read_project_config,
+            commands::projects::write_project_config,
             commands::workspace::read_directory,
             commands::workspace::read_file,
             commands::workspace::find_file,
