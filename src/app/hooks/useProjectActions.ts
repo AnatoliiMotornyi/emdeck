@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { hasUnsavedFiles } from '../../features/editor/services/documents';
+import { PANE_COLORS, storedPanes } from '../../features/agents/lib/pane-store';
 import { lastProjectPath, rememberProject } from '../../features/projects/lib/startup';
 import { api, native } from '../../platform/desktop/api';
 import { readStored, store } from '../../platform/storage/preferences';
@@ -9,7 +10,6 @@ import { useLatest } from '../../shared/hooks/useLatest';
 import type { useEditorActions } from './useEditorActions';
 import type { useWorkspaceRefresh } from './useWorkspaceRefresh';
 import type { useWorkspaceState } from './useWorkspaceState';
-const colors = ['#b8ee86', '#c4a0ed', '#8bbbf5', '#f1b17f', '#f38ea2'];
 type Dependencies = Pick<
   ReturnType<typeof useWorkspaceState>,
   | 'opening'
@@ -87,8 +87,18 @@ export function useProjectActions({
         path = picked;
       }
       if (target === 'new' || (target === 'auto' && latest.current.project)) {
-        await api.openWindow(path);
-        notify('Project opened in a new Emdeck window.');
+        const result = await api.openWindow(path);
+        notify(
+          result.reused
+            ? 'Showing the existing project window.'
+            : 'Project opened in a new Emdeck window.'
+        );
+        return;
+      }
+      // Native path identity includes aliases and filesystem case rules. Check
+      // before asking to discard anything in this window.
+      if (native && latest.current.project && (await api.focusProject(path))) {
+        notify('Showing the existing project window.');
         return;
       }
       if (
@@ -100,7 +110,13 @@ export function useProjectActions({
         ))
       )
         return;
-      const p = await api.open(path);
+      const result = await api.open(path);
+      // Another window may claim the folder while the confirmation is open.
+      if (result.kind === 'focused') {
+        notify('Showing the existing project window.');
+        return;
+      }
+      const p = result.project;
       latest.current.project = p;
       latest.current.files = [];
       latest.current.expanded = new Set();
@@ -115,7 +131,7 @@ export function useProjectActions({
       setDirectories({});
       setExpanded(new Set());
       setGit(null);
-      setPanes([]);
+      setPanes(native ? storedPanes(p.root) : []);
       setPaneStates({});
       setAgentObservations({});
       setAgentUsage({});
@@ -144,7 +160,7 @@ export function useProjectActions({
             command: 'codex',
             cwd: '',
             shell: '',
-            color: colors[0],
+            color: PANE_COLORS[0],
           },
           {
             id: 'preview-claude',
@@ -152,7 +168,7 @@ export function useProjectActions({
             command: 'claude',
             cwd: '',
             shell: '',
-            color: colors[1],
+            color: PANE_COLORS[1],
           },
           {
             id: 'preview-shell',
@@ -160,7 +176,7 @@ export function useProjectActions({
             command: '',
             cwd: '',
             shell: '',
-            color: colors[2],
+            color: PANE_COLORS[2],
           },
         ]);
       }

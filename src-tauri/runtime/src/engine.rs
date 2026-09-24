@@ -271,6 +271,9 @@ impl Engine {
             return Err("Session server is stopping.".into());
         }
         match action {
+            Action::Remote(_) => {
+                Err("Remote management requires the local server endpoint.".into())
+            }
             Action::Ping => Ok(json!({"protocol": PROTOCOL, "serverId": self.id})),
             Action::Snapshot { after, wait_ms } => {
                 let state = self.state.lock().map_err(error)?;

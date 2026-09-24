@@ -6,15 +6,64 @@ does not include it.
 
 ## Desktop workflow
 
+Background terminals are also available in **Workspaces**, alongside ordinary
+terminals. Select **Background machines** in its sidebar to connect a local, SSH
+or paired machine, or create a background terminal. **Back to sessions** returns
+to the workspace list without changing the terminal view.
+
+The workspace list identifies each background agent's machine and workspace,
+shows its reported status, and includes blocked agents in **Needs attention**.
+Click an agent to attach and focus it. **All sessions** shows attached ordinary
+and background terminals together; **Split view**, **Side by side**, **Stacked**
+and **Grid** control their arrangement. Unopened background agents remain listed
+without taking an input lease. Offline machines show stale activity as offline.
+
+Switching between Workspaces and Background sessions preserves existing terminal
+views, scrollback and input ownership. Panes shows ordinary terminals while
+background views remain attached but hidden. **Detach** removes the view from
+both session views and leaves the process running; **Stop** explicitly confirms
+ending the process on its machine. Existing enabled machine profiles reconnect
+when a session view is activated. Opening a project does not launch agents. The
+custom drag-and-resize split tree belongs to Background sessions; Workspaces
+uses the ordinary row, column and grid presets.
+
 Select **Background sessions** in the terminal view menu. Click **Connect local
 server**, then expand **New background terminal**. Choose a machine, an existing
 workspace or an absolute folder, and a command such as `claude` or `codex`. A
 blank command starts the system shell.
 
+The machines/settings sidebar groups sessions by computer and workspace. Click a
+machine heading to fold its session list. Open **Machine settings** for
+disconnecting, forgetting a saved machine or managing local Tailscale sharing.
+The **New & connect** section contains terminal creation and connection setup.
+
+Use **Collapse sessions sidebar** in its header to make more room for terminals.
+A narrow **Show sessions sidebar** button remains available, with an attention
+indicator when agents need an answer. Clicking that indicator opens the filtered
+session list. Sidebar visibility is remembered on this device; collapsing it
+preserves open setup forms, terminal views and connections. The pane layout
+toolbar stays available above the terminals.
+
 The rail lists every connected machine's workspaces and agents, including those
 without attached views. **Needs attention** filters blocked agents and **Show
-details** controls evidence labels. Select an agent to attach and focus it.
-**All panes** and the layout controls display multiple terminals together.
+details** controls evidence labels. Select agents to attach them side by side.
+Choose a workspace in the rail to focus its panes, or **All panes** to show
+every attached view.
+
+The layout toolbar offers **Side by side**, **Stacked** and **Grid**. Drag the
+grip in a terminal header to another pane's left, right, top or bottom edge to
+split that area; drop in its center to swap positions. The highlighted area
+previews the destination. Drag a divider to resize a split, or double-click it
+to balance its two sides. Selecting a preset arranges all panes evenly and
+restores multiple views after expanding a single terminal.
+
+For keyboard positioning, focus a grip and use arrow keys to move beside the
+nearest pane, or Shift+arrow to swap. Focus a divider and use arrows to resize,
+Shift+arrow for larger steps, or Enter to balance. Escape cancels a drag. Small
+windows scroll when needed instead of shrinking terminals below usable sizes.
+View positions and sizes are saved on this device, including panes from remote
+machines. Filtering, changing themes and arranging panes preserve live views and
+scrollback. Up to 64 views can be attached at once.
 
 **Detach** leaves the process running. **Stop** explicitly ends the process
 after confirmation. Stopped entries offer **Start again**, **Resume** when a
@@ -28,6 +77,10 @@ never launches an agent. Another client's input ownership requires **Take
 control**; abandoned ownership expires after 45 seconds.
 
 ## Remote installation
+
+For direct connections without OpenSSH, use the optional
+[Tailscale pairing workflow](TAILSCALE-SESSIONS.md). Sharing is disabled until
+explicitly enabled on the host. The SSH workflow below remains available.
 
 Build the standalone binary with stable Rust, without Tauri or a WebView:
 
@@ -106,8 +159,10 @@ client. A standalone binary runs on remote machines without the desktop GUI.
 The desktop, CLI, and SSH bridge use a versioned JSON protocol. Local access is
 restricted to a loopback listener with a random capability stored in a private
 per-user directory. The capability is never included in renderer state, URLs, or
-remote profile settings. Remote access runs the same bridge through OpenSSH; no
-unauthenticated network service is exposed.
+remote profile settings. Remote access uses either the bridge through OpenSSH or
+the optional TLS listener bound to a Tailscale IPv4 address. Direct clients pair
+using an expiring, single-use code and keep their revocable credentials in
+native private storage. No unauthenticated terminal access is exposed.
 
 Closing a view releases its input ownership and disconnects its client. Stopping
 a terminal or the server is a separate explicit operation. A slow or

@@ -7,6 +7,7 @@ import { restoreProfiles, spaceId, terminalSpaces, validateProfile } from '../se
 
 interface Input {
   panes: Pane[];
+  extraSpaces?: { id: string }[];
   projectName: string;
   addPane: (name: string, command: string, cwd: string, remote?: SshProfile) => boolean;
   focus: (id: string, solo?: boolean) => void;
@@ -15,6 +16,7 @@ interface Input {
 }
 export const useTerminalWorkspace = ({
   panes,
+  extraSpaces = [],
   projectName,
   addPane,
   focus,
@@ -38,10 +40,11 @@ export const useTerminalWorkspace = ({
     // Launches can also come from run configurations and the explorer. Reveal
     // their space without changing any existing terminal's lifetime.
     if (added) {
+      clearMaximized();
       setSpace(spaceId(added));
       setView(view => (view === 'server' ? 'panes' : view));
     }
-  }, [panes]);
+  }, [panes, clearMaximized]);
   useEffect(() => {
     store('relay:terminal-view', view);
   }, [view]);
@@ -49,7 +52,7 @@ export const useTerminalWorkspace = ({
     store('relay:remote-connections', profiles);
   }, [profiles]);
   const spaces = terminalSpaces(panes, projectName);
-  const activeSpace = spaces.some(item => item.id === space) ? space : 'all';
+  const activeSpace = [...spaces, ...extraSpaces].some(item => item.id === space) ? space : 'all';
   const visiblePanes =
     view === 'panes' || activeSpace === 'all'
       ? panes

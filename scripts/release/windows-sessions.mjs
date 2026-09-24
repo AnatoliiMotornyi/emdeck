@@ -67,7 +67,7 @@ try {
   await page.reload();
   await page.getByLabel('Terminal view').selectOption('server');
   await page.getByRole('button', { name: 'Connect local server', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Disconnect', exact: true })).toBeVisible();
+  await expect(page.locator('.session-connection-state.connected')).toBeVisible();
   await page.getByText('New background terminal', { exact: true }).click();
   await page.getByLabel('Workspace name', { exact: true }).fill('Persistent fixture');
   await page.getByLabel('Folder on that machine', { exact: true }).fill(project);

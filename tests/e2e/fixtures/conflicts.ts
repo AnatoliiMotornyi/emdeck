@@ -4,7 +4,13 @@ import type { GitConflict } from '../../../src/shared/contracts/gitConflicts';
 
 export const prepareConflicts = async (
   page: Page,
-  options: { clean?: boolean; binary?: boolean; deleted?: boolean; rebase?: boolean } = {}
+  options: {
+    clean?: boolean;
+    binary?: boolean;
+    deleted?: boolean;
+    rebase?: boolean;
+    extension?: string;
+  } = {}
 ) => {
   await page.evaluate(options => {
     const state = window as unknown as Record<string, unknown>;
@@ -15,24 +21,26 @@ export const prepareConflicts = async (
     const calls = state.__emdeckCalls as { command: string; args: Record<string, unknown> }[];
     const text = (content: string | null) => ({ exists: content !== null, binary: false, content });
     const files: Record<string, GitConflict> = Object.fromEntries(
-      ['src/config.ts', 'notes.ts'].map(path => [
-        path,
-        {
+      [`src/config.${options.extension ?? 'ts'}`, `notes.${options.extension ?? 'ts'}`].map(
+        path => [
           path,
-          revision: `revision-${path}`,
-          base: text('const first = 0;\nconst second = 0;\n'),
-          ours: text('const first = 1;\nconst second = 1;\n'),
-          theirs: text('const first = 2;\nconst second = 2;\n'),
-          working: text(
-            '<<<<<<< HEAD\nconst first = 1;\n=======\nconst first = 2;\n>>>>>>> incoming\n<<<<<<< HEAD\nconst second = 1;\n=======\nconst second = 2;\n>>>>>>> incoming\n'
-          ),
-          oursLabel: options.rebase ? 'Ours — rebased destination' : 'Ours — current branch',
-          theirsLabel: options.rebase
-            ? 'Theirs — commit being replayed'
-            : 'Theirs — incoming changes',
-          manualAllowed: true,
-        },
-      ])
+          {
+            path,
+            revision: `revision-${path}`,
+            base: text('const first = 0;\nconst second = 0;\n'),
+            ours: text('const first = 1;\nconst second = 1;\n'),
+            theirs: text('const first = 2;\nconst second = 2;\n'),
+            working: text(
+              '<<<<<<< HEAD\nconst first = 1;\n=======\nconst first = 2;\n>>>>>>> incoming\n<<<<<<< HEAD\nconst second = 1;\n=======\nconst second = 2;\n>>>>>>> incoming\n'
+            ),
+            oursLabel: options.rebase ? 'Ours — rebased destination' : 'Ours — current branch',
+            theirsLabel: options.rebase
+              ? 'Theirs — commit being replayed'
+              : 'Theirs — incoming changes',
+            manualAllowed: true,
+          },
+        ]
+      )
     );
     if (options.deleted) files['src/config.ts'].ours = text(null);
     if (options.binary) {

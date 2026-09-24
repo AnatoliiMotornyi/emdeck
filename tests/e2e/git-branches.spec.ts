@@ -82,6 +82,34 @@ test('Git dropdown shows incoming/outgoing counts and fetch runs only on request
     .poll(() => gitCalls(page))
     .toContainEqual(expect.objectContaining({ action: 'update', reference: 'refs/heads/main' }));
 });
+test('the toolbar sync button merges the integration branch into the current one', async ({
+  page,
+}) => {
+  await openBranchFixture(page, 'dima/feature/branch-name');
+  // The fixture leaves the picker open; its dismiss overlay covers the toolbar.
+  await page.locator('.popover-dismiss').click();
+  const sync = page.getByRole('button', { name: 'Update from main', exact: true });
+  await expect(sync).toBeVisible();
+  expect(await gitCalls(page)).toEqual([]);
+
+  await sync.click();
+  await expect
+    .poll(() => gitCalls(page))
+    .toEqual([
+      expect.objectContaining({
+        action: 'sync',
+        reference: 'refs/heads/main',
+        expectedCurrent: 'dima/feature/branch-name',
+      }),
+    ]);
+
+  await openBranchFixture(page, 'main');
+  await page.locator('.popover-dismiss').click();
+  await expect(
+    page.getByRole('button', { name: /^Update from/ }),
+    'a branch cannot be brought up to date with itself'
+  ).toHaveCount(0);
+});
 test('branch action menu supports keyboard, right click and fits a small light window', async ({
   page,
 }) => {
@@ -327,6 +355,49 @@ test('source control provides continue and abort when a rebase is in progress', 
     .poll(() => gitCalls(page))
     .toEqual([expect.objectContaining({ action: 'abort', expectedCurrent: 'main' })]);
 });
+test('main stays first locally and inside each remote after filtering and refresh', async ({
+  page,
+}) => {
+  await openBranchFixture(page, 'dima/feature/branch-name');
+  await page.evaluate(() => {
+    const state = window as unknown as {
+      __emdeckGit: { localBranches: string[]; remoteBranches: string[] };
+    };
+    state.__emdeckGit.localBranches.push('aaa', 'dev');
+    state.__emdeckGit.remoteBranches.push('upstream/aaa', 'upstream/feature/task', 'origin/aaa');
+  });
+  await page.getByTitle('Refresh branches', { exact: true }).click();
+  const local = page.getByRole('region', { name: 'Local branches', exact: true });
+  const remote = page.getByRole('region', { name: 'Remote branches', exact: true });
+  const expectMainFirst = async () => {
+    await expect(local.locator(':scope > div > ul > li > button').first()).toHaveAttribute(
+      'aria-label',
+      'Actions for local branch main'
+    );
+    for (const name of ['origin', 'upstream']) {
+      const folder = remote
+        .getByRole('button', { name: `Remote folder ${name}`, exact: true })
+        .locator('..');
+      await expect(folder.locator(':scope > ul > li > button').first()).toHaveAttribute(
+        'aria-label',
+        `Actions for remote branch ${name}/main`
+      );
+    }
+  };
+  await expectMainFirst();
+  const filter = page.getByRole('textbox', { name: 'Filter branches' });
+  await filter.fill('main');
+  await expectMainFirst();
+  await filter.fill('dima');
+  await expect(
+    local.getByRole('button', { name: 'Actions for local branch main', exact: true })
+  ).toHaveCount(0);
+  await filter.fill('');
+  await page.getByTitle('Refresh branches', { exact: true }).click();
+  await expectMainFirst();
+  expect(await gitCalls(page)).toEqual([]);
+});
+
 test('branches have independent local/remote folders and reveal the current branch', async ({
   page,
 }) => {

@@ -76,9 +76,28 @@ test('optional workspace view preserves terminals, editor state and attention na
   await page.getByLabel('Terminal view').selectOption('workspaces');
   await page.getByTitle('Expand terminals', { exact: true }).click();
   await page.screenshot({ path: 'test-results/terminal-workspaces-dark.png' });
+  await emit(page, 'pty-0', {
+    type: 'usage',
+    usage: {
+      source: 'report',
+      updatedAt: Date.now(),
+      model: 'Opus',
+      sessionId: 'kept_session-1',
+      inputTokens: null,
+      outputTokens: null,
+      contextSize: null,
+      contextPercent: null,
+      costUsd: null,
+      limits: [],
+    },
+  });
   await page.reload();
   await expect(page.getByLabel('Terminal view')).toHaveValue('workspaces');
-  expect(await calls(page, 'terminal_spawn')).toHaveLength(0);
+  // The project reopens its Claude pane against the conversation it was on, rather than a new one.
+  await expect(page.getByRole('region', { name: 'Claude terminal' })).toBeVisible();
+  const spawns = await calls(page, 'terminal_spawn');
+  expect(spawns).toHaveLength(1);
+  expect(spawns[0].resume).toBe('kept_session-1');
 });
 
 test('saved connections remain disconnected on startup and validate before saving', async ({

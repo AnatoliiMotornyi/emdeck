@@ -1,0 +1,110 @@
+.rail-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  overflow: auto;
+}
+.session-rail.is-collapsed {
+  width: 76px;
+  min-width: 76px;
+}
+.session-rail.is-collapsed .rail-expanded-only {
+  display: none;
+}
+.session-rail.is-collapsed .rail-heading {
+  justify-content: center;
+  padding: 7px;
+}
+.rail-mini-all {
+  flex-shrink: 0;
+  margin: 5px;
+  min-height: 30px;
+  border-radius: 4px;
+  color: var(--subtle);
+}
+.rail-mini-all[aria-pressed="true"] {
+  color: var(--accent-ink);
+  background: var(--accent-soft);
+}
+.rail-mini-all small {
+  font-size: 9px;
+}
+.session-rail.is-collapsed .rail-attention {
+  flex-shrink: 0;
+  margin: 0 5px 7px;
+  padding: 6px;
+}
+.session-rail.is-collapsed .rail-sessions {
+  padding: 0 5px;
+}
+.session-rail.is-collapsed .rail-session {
+  position: relative;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 5px;
+  padding: 8px 4px;
+  min-height: 63px;
+}
+.session-rail.is-collapsed .rail-session > i {
+  position: absolute;
+  top: 6px;
+  right: 5px;
+  margin: 0;
+}
+.rail-session .rail-job-avatar {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  color: var(--session-status-color);
+  background: color-mix(in srgb, var(--session-status-color) 12%, var(--panel));
+  font: 600 12px var(--mono);
+}
+.rail-job-avatar > svg {
+  position: absolute;
+  left: -4px;
+  bottom: -2px;
+  background: var(--panel);
+}
+.session-rail.is-collapsed .rail-job-content {
+  flex: none;
+  width: 100%;
+  text-align: center;
+}
+.session-rail.is-collapsed .rail-session strong {
+  font-size: 9px;
+  line-height: 13px;
+}
+.session-rail.is-collapsed .rail-status {
+  position: absolute;
+  top: 24px;
+  right: 3px;
+  padding: 2px;
+  margin: 0;
+  border-radius: 50%;
+  background: var(--panel);
+}
+.session-rail.is-collapsed .rail-location,
+.session-rail.is-collapsed .rail-provider {
+  display: none !important;
+}
+.session-rail .rail-mini-actions {
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+  padding: 7px 4px;
+}
+.session-rail .rail-mini-actions button {
+  margin: 0;
+}
+.session-rail.is-collapsed .rail-note {
+  padding: 3px;
+  font-size: 9px;
+  overflow-wrap: anywhere;
+  text-align: center;
+}

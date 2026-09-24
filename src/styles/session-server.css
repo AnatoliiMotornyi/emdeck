@@ -39,6 +39,14 @@
   gap: 8px;
   font-size: 10px;
 }
+.session-options label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.session-options input[type="checkbox"] {
+  margin: 0;
+}
 .session-machine-actions button,
 .session-machines header button,
 .session-terminal header button {
@@ -103,27 +111,33 @@
   padding: 20px;
   color: var(--muted);
 }
+.session-remote-form,
 .session-forms details {
   border-top: 1px solid var(--border);
   padding: 8px 0;
 }
+.session-remote-form summary,
 .session-forms summary {
   cursor: pointer;
   font-size: 11px;
   color: var(--accent);
 }
+.session-remote-form form,
 .session-forms form {
   display: flex;
   flex-direction: column;
   gap: 9px;
   padding-top: 9px;
 }
+.session-remote-form label,
 .session-forms label {
   display: flex;
   flex-direction: column;
   gap: 4px;
   font-size: 10px;
 }
+.session-remote-form input,
+.session-remote-form textarea,
 .session-forms input,
 .session-forms select {
   width: 100%;
@@ -141,6 +155,7 @@
 .session-forms input[type="checkbox"] {
   width: auto;
 }
+.session-remote-form p,
 .session-forms p {
   font-size: 10px;
   line-height: 1.5;
@@ -177,20 +192,6 @@
   flex-wrap: wrap;
   min-height: 34px;
   height: auto;
-}
-.session-machines {
-  scrollbar-color: transparent transparent;
-}
-.session-machines:hover,
-.session-machines:focus-within {
-  scrollbar-color: var(--border) transparent;
-}
-.session-machines::-webkit-scrollbar-thumb {
-  background: transparent;
-}
-.session-machines:hover::-webkit-scrollbar-thumb,
-.session-machines:focus-within::-webkit-scrollbar-thumb {
-  background: var(--border);
 }
 .terminal-view-server .terminal-view-select {
   width: 155px;

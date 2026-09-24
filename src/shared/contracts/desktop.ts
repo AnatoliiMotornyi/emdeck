@@ -6,13 +6,15 @@ import type {
   Entry,
   FileData,
   GitSnapshot,
-  Project,
+  Shelf,
+  UnshelveReport,
   Worktree,
 } from './workspace';
 import type { SshTarget } from './remote';
 import type { MachineTarget, SessionAction } from './sessions';
 import type { ConflictResolution, GitConflict } from './gitConflicts';
 import type { DiscardPlan, DiscardRequest } from './gitDiscard';
+import type { OpenProjectResult, OpenWindowResult } from './projects';
 
 type Command<Args, Result> = { args: Args; result: Result };
 type FileLocation = { root: string; path: string };
@@ -20,11 +22,14 @@ type Repository = { root: string };
 
 /** Public IPC payloads. Window identity and authorization are injected by Tauri. */
 export interface DesktopCommands {
+  session_pair: Command<{ code: string; name: string }, { credential: string; address: string }>;
+  session_forget: Command<{ credential: string }, void>;
   session_connect: Command<{ target: MachineTarget }, string>;
   session_request: Command<{ connection: string; action: SessionAction }, unknown>;
   session_disconnect: Command<{ connection: string }, void>;
-  open_project: Command<{ path: string }, Project>;
-  open_project_window: Command<{ path: string }, string>;
+  open_project: Command<{ path: string }, OpenProjectResult>;
+  open_project_window: Command<{ path: string }, OpenWindowResult>;
+  focus_project_window: Command<{ path: string }, string | null>;
   startup_project: Command<Record<string, never>, string | null>;
   read_directory: Command<FileLocation, Entry[]>;
   read_file: Command<FileLocation, FileData>;
@@ -55,6 +60,10 @@ export interface DesktopCommands {
   git_worktrees: Command<Repository, Worktree[]>;
   git_worktree_create: Command<Repository & { request: CreateWorktree }, string>;
   git_worktree_remove: Command<FileLocation, void>;
+  shelf_list: Command<Repository, Shelf[]>;
+  shelf_create: Command<Repository & { name: string; paths: string[] }, Shelf>;
+  shelf_apply: Command<Repository & { id: string; force: boolean }, UnshelveReport>;
+  shelf_delete: Command<Repository & { id: string }, void>;
   terminal_spawn: Command<
     Repository & {
       cwd: string;
@@ -63,6 +72,7 @@ export interface DesktopCommands {
       cols: number;
       rows: number;
       enhancedUsage: boolean;
+      resume: string | null;
       onEvent: unknown;
     },
     string

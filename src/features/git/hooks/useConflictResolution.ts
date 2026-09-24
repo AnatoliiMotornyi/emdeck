@@ -3,14 +3,20 @@ import type {
   ConflictChoice,
   ConflictPort,
   GitConflict,
+  MergeBlockChoice,
+  MergeBlockMode,
+  MergeResultBlock,
 } from '../../../shared/contracts/gitConflicts';
 import { useLatest } from '../../../shared/hooks/useLatest';
 import { hasConflictMarkers } from '../services/conflicts';
+import { applyMergeBlock, initializeMergeBlocks, sameMergeSides } from '../services/mergeBlocks';
 
 interface Draft {
   source: GitConflict;
   content: string;
   manual: boolean;
+  blocks: MergeResultBlock[];
+  blockSource: Pick<GitConflict, 'ours' | 'theirs'>;
 }
 const hasDirtyDrafts = (drafts: Record<string, Draft>) =>
   Object.values(drafts).some(
@@ -77,6 +83,14 @@ export function useConflictResolution({
               source,
               content: existing?.manual ? existing.content : (source.working.content ?? ''),
               manual: existing?.manual ?? false,
+              blockSource: existing?.manual
+                ? existing.blockSource
+                : { ours: source.ours, theirs: source.theirs },
+              blocks: existing?.manual
+                ? sameMergeSides(existing.blockSource, source)
+                  ? existing.blocks
+                  : existing.blocks.map(block => ({ ...block, valid: false }))
+                : initializeMergeBlocks(source),
             },
           };
         });
@@ -97,13 +111,39 @@ export function useConflictResolution({
       setDiscarding(false);
     }
   };
-  const change = (content: string) => {
+  const change = (content: string, blocks?: MergeResultBlock[]) => {
     if (savingRef.current) return;
     updateDrafts(previous =>
       previous[selected]
-        ? { ...previous, [selected]: { ...previous[selected], content, manual: true } }
+        ? {
+            ...previous,
+            [selected]: {
+              ...previous[selected],
+              content,
+              manual: true,
+              blocks:
+                blocks && sameMergeSides(previous[selected].blockSource, previous[selected].source)
+                  ? blocks
+                  : (blocks ?? previous[selected].blocks).map(block => ({
+                      ...block,
+                      valid: false,
+                    })),
+            },
+          }
         : previous
     );
+  };
+  const applyBlock = (id: number, choice: MergeBlockChoice, mode: MergeBlockMode = 'replace') => {
+    if (loading || savingRef.current) return;
+    updateDrafts(previous => {
+      const current = previous[selected];
+      if (!current?.source.manualAllowed || !sameMergeSides(current.source, current.blockSource))
+        return previous;
+      const result = applyMergeBlock(current.content, current.blocks, id, choice, mode);
+      return result
+        ? { ...previous, [selected]: { ...current, ...result, manual: true } }
+        : previous;
+    });
   };
   const startManual = () => {
     if (draft && !savingRef.current)
@@ -159,6 +199,7 @@ export function useConflictResolution({
     discarding,
     select,
     change,
+    applyBlock,
     startManual,
     resolve,
     close,

@@ -92,6 +92,31 @@ test('background view attaches existing agents, preserves terminals and separate
   await page.getByRole('button', { name: 'Connect local server', exact: true }).click();
   const rail = page.getByRole('complementary', { name: 'Background machines and agents' });
   await expect(rail).toContainText('Permission request');
+  const details = page.getByRole('checkbox', { name: 'Show details' });
+  await expect(details).toBeVisible();
+  // Engines disagree on where a native checkbox and its tick sit, and Chromium happens to
+  // agree with the design, so assert the rules that take the drawing away from the engine.
+  expect(
+    await details.evaluate(input => {
+      const label = getComputedStyle(input.closest('label')!);
+      const box = getComputedStyle(input);
+      return {
+        label: [label.display, label.alignItems],
+        appearance: box.appearance,
+        size: [box.width, box.height],
+        tick: box.backgroundImage.startsWith('url("data:image/svg+xml'),
+        tickPosition: box.backgroundPosition,
+        tickRepeat: box.backgroundRepeat,
+      };
+    })
+  ).toEqual({
+    label: ['flex', 'center'],
+    appearance: 'none',
+    size: ['15px', '15px'],
+    tick: true,
+    tickPosition: '50% 50%',
+    tickRepeat: 'no-repeat',
+  });
   await rail.getByRole('button', { name: /Fix remote login/ }).click();
   const terminal = page.locator('.session-terminal');
   await expect(terminal).toHaveAccessibleName('Fix remote login persistent terminal');

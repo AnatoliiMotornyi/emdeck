@@ -1,5 +1,114 @@
 # React audit — 0.1.19
 
+## Unreleased — integrate shelving and branch updates from main
+
+React Doctor 0.9.13 reports eight errors and 70 warnings after combining the
+workspace changes with main. Four new errors in `useShelfActions` have the same
+false-positive pattern as Worktrees: callbacks passed to the ordinary async
+`guard` helper are classified as React state updaters. The helper invokes them
+directly, never through a state setter. Its actual selection updater is pure.
+The existing GitPanel complexity advisory reflects the added selection controls;
+the component remains within its size budget. Shelf and branch workflows are
+covered by the integrated test suite. No rules or diagnostics were suppressed.
+
+## Unreleased — terminal scrollback during resizing
+
+React Doctor 0.9.13 retains the four reviewed Worktrees errors and 70 advisory
+warnings. No new diagnostics were introduced. Existing TerminalPane complexity
+and size advice remains below the repository's component budget. Scrollback
+restoration stays in the pure fitter service; terminal effects only bind and
+clean up interaction listeners. The change does not alter effect dependencies,
+terminal identity or attachment lifetime. No diagnostics were suppressed.
+
+## Unreleased — compact Workspaces sidebar
+
+React Doctor 0.9.13 retains the four reviewed Worktrees errors and reports 70
+warnings. The new advisory is control-flow complexity in `SessionRail`, which
+coordinates filtering and expanded/compact controls within the component budget.
+Job rendering is extracted into `SessionRailJob`; both modes share the existing
+status presenter and colors. Collapse changes no terminal ownership or effects.
+Browser coverage verifies keyboard selection, live status changes, remembered
+collapse, hidden search handling, short-window scrolling and stable background
+attachments. No diagnostics were suppressed or budgets increased.
+
+## Unreleased — one window per project
+
+React Doctor 0.9.13 retains the four reviewed Worktrees errors and 69 warnings.
+The project-opening hook adds native focus outcomes without changing mounted
+editor or terminal identity. No diagnostic targets that hook. Five new browser
+workflows cover retained drafts and terminals, replacement races and initial
+renderer startup. No findings were suppressed.
+
+## Unreleased — background terminals in Workspaces
+
+React Doctor 0.9.13 reports the same four reviewed Worktrees errors and 69
+warnings. Avoidable repeated array scans and the state-independent launch
+callback were corrected. The composition warning moves from `TerminalPanel` to
+the extracted `TerminalContent`, which remains within the 500-line budget. It
+assembles both terminal sources through stable keyed render slots; connection
+state and workspace projection have separate ownership. Mixed-view browser tests
+verify DOM continuity and the absence of duplicate connections, leases or
+process starts. No findings were suppressed or budgets changed.
+
+## Unreleased — collapsible background sidebar
+
+React Doctor 0.9.13 retains the four reviewed Worktrees errors and reports 69
+warnings. The new advisory concerns conditional controls in
+`SessionMachineCard`, which is within the component size budget. Sidebar
+preferences and disclosures are isolated from connection and terminal lifetimes.
+Collapsed content remains mounted to retain form drafts, sharing controls and
+scroll position; attention navigation expands the machine groups through
+explicit event handlers. No diagnostics were suppressed.
+
+## Unreleased — background terminal layouts
+
+React Doctor 0.9.13 reports four reviewed Worktrees errors and 68 advisory
+warnings. The new advisories concern the bounded machine/pane selection loop in
+`SessionDesk` and a JSON round-trip test that deliberately checks the persisted
+layout format. Repeated membership lookups now use sets. Tree operations and
+geometry remain pure services; pointer handling lives in a separate hook and
+layout persistence stays in the view. Terminal views keep stable keyed parents
+through docking, resizing, filtering and theme changes. No rules were suppressed
+or size limits increased.
+
+## Unreleased — direct Tailscale session access
+
+React Doctor 0.9.13 retains the four reviewed Worktrees errors and 68 existing
+warnings. Five new findings were addressed: both new forms specify submit button
+types, and machine restoration caches repeated target properties. Sharing
+settings load only when opened; no new polling or terminal remounts were
+introduced. Tests cover explicit sharing, successful and failed pairing, native
+credential references in preferences, revocation and existing background
+terminal continuity. No rules were suppressed.
+
+## Unreleased — main branch ordering
+
+The pinned 0.9.13 audit retains four reviewed Worktrees errors and 68 warnings,
+with no new findings. The picker passes local/remote scope into its existing
+pure tree service so `main` sorts first in its group. Filtering and folder state
+remain unchanged; unit and browser tests cover ordering and refreshes.
+
+## Unreleased — persistent merge block actions
+
+React Doctor 0.9.13 reports the same four reviewed Worktrees errors and 68
+warnings. The one new advisory recommends a dynamic CodeMirror import in
+`mergeBlockHistory`; this helper already loads through the lazy `MergeCodePane`.
+Block metadata travels with editor transactions so undo and redo restore text,
+boundaries and accepted sides together. Browser tests cover both choice orders,
+replacement, appending, file switching and stale source versions. No diagnostics
+were suppressed or size budgets changed.
+
+## Unreleased — three-pane merge review
+
+React Doctor 0.9.13 reports four existing Worktrees errors and 67 warnings. The
+five new warnings recommend dynamic imports for CodeMirror in `MergeCodePane`,
+its decoration helper and the extracted shared editor theme. These modules
+already load through the application's lazy editor render slots; the source
+panes do not create a new eager editor dependency. They retain their views
+through theme and draft updates, with block choices recorded as undo steps. The
+normal editor shares the extracted syntax palette without changing its lifetime.
+No diagnostics were suppressed.
+
 ## Unreleased — Codex activity signals
 
 The pinned 0.9.13 audit retains four reviewed Worktrees errors and 62 advisory

@@ -32,7 +32,10 @@ test.beforeEach(async ({ page }) => {
           case 'startup_project':
             return '/projects/bun-app';
           case 'open_project':
-            return { root: args.path, name: String(args.path).split('/').pop() };
+            return {
+              kind: 'opened',
+              project: { root: args.path, name: String(args.path).split('/').pop() },
+            };
           case 'plugin:dialog|open':
             return '/projects/second';
           case 'read_directory':

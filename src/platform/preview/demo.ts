@@ -32,7 +32,7 @@ export async function demoCall<T>(command: string, args: Record<string, unknown>
   let result: unknown;
   switch (command) {
     case 'open_project':
-      result = { root: '/preview/hello-relay', name: 'hello-emdeck' };
+      result = { kind: 'opened', project: { root: '/preview/hello-relay', name: 'hello-emdeck' } };
       break;
     case 'read_directory': {
       const prefix = path ? `${path}/` : '';
@@ -115,6 +115,11 @@ export async function demoCall<T>(command: string, args: Record<string, unknown>
         changes: [],
         commits: [],
       } satisfies GitSnapshot;
+      break;
+    case 'shelf_list':
+      // Shelving needs Git and a real filesystem, so the preview has nothing
+      // to list. The mutations fall through to the message below.
+      result = [];
       break;
     default:
       throw new Error('This feature requires the Emdeck desktop app. Run npm run desktop.');

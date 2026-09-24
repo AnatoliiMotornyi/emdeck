@@ -55,33 +55,3 @@ test('a maximized tab stays distinguishable from the focused one', async ({ page
   );
   await expect(claude).toHaveAttribute('aria-pressed', 'false');
 });
-
-test('the Spaces rail collapses to a strip, widens the terminals and is remembered', async ({
-  page,
-}) => {
-  const rail = page.getByRole('complementary', { name: 'Terminal workspaces' });
-  const canvas = page.locator('.terminal-canvas');
-  await expect(rail.getByText('SPACES')).toBeVisible();
-  const wideRail = (await rail.boundingBox())!.width;
-  const narrowCanvas = (await canvas.boundingBox())!.width;
-
-  await rail.getByLabel('Collapse spaces').click();
-
-  await expect(rail.getByLabel('Expand spaces')).toBeVisible();
-  await expect(rail.getByText('SPACES'), 'the labels do not survive a 42px column').toHaveCount(0);
-  const narrowRail = (await rail.boundingBox())!.width;
-  expect(narrowRail).toBeLessThan(wideRail / 2);
-  expect(
-    (await canvas.boundingBox())!.width - narrowCanvas,
-    'the terminals take the width the rail gave up'
-  ).toBeGreaterThan(wideRail - narrowRail - 1);
-  await expect(
-    rail.getByRole('button', { name: /All sessions/ }),
-    'switching spaces stays reachable while collapsed'
-  ).toBeVisible();
-
-  await page.reload();
-  await expect(page.getByLabel('Expand spaces')).toBeVisible();
-  await page.getByLabel('Expand spaces').click();
-  await expect(rail.getByText('SPACES')).toBeVisible();
-});

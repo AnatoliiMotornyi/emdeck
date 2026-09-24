@@ -106,6 +106,8 @@ export default function ConflictResolver({
                   <MergeVersions
                     source={source}
                     content={draft.content}
+                    blocks={draft.blocks}
+                    onResolve={model.applyBlock}
                     manual={draft.manual}
                     busy={saving || loading}
                     onChange={model.change}

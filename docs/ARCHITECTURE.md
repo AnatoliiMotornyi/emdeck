@@ -90,15 +90,90 @@ standalone server has no Tauri dependency; Windows' embedded fallback runs from
 a private copy so the IDE remains replaceable while agents work. See
 [persistence and automation](PERSISTENT-AGENTS.md).
 
+The runtime's `remote` module owns optional Tailscale-address binding, TLS,
+single-use pairing, revocable device trust and native client credential files.
+Its authenticated transport forwards bounded requests to the existing local
+engine, namespaces input leases by device, and denies remote sharing management.
+Local capability checks precede all host-management actions. The desktop native
+session service resolves opaque pairing IDs and preserves window ownership;
+React receives public machine metadata only. Sharing is opt-in and cannot alter
+firewall settings or install network software. See
+[direct remote connections](TAILSCALE-SESSIONS.md).
+
 Opening a second project defaults to a new native window. Replacement resets
 that window's views only after the existing confirmation flow. Native project
 roots and terminal groups are keyed by the invoking window, not
 renderer-provided IDs.
 
+Each project folder has one active window. `windows.rs` composes native routing,
+window focus and creation; the filesystem identity service canonicalizes paths
+and compares file identities to handle case differences and folder aliases. A
+routing mutex serializes lookup and creation, reserving the folder before its
+renderer starts. Window destruction releases the reservation. Native window
+events never acquire the routing mutex. Authorization remains scoped to the
+calling window and never grants access when another window owns the folder.
+
+Opening an owned folder shows, restores and focuses its existing window. The
+renderer checks before a replacement confirmation and handles a native focused
+result afterward, preserving drafts and terminals if another window claimed the
+folder during confirmation. Initial renderers still initialize their own
+reserved folder. Tauri's single-instance plugin forwards subsequent launches to
+this same router on a blocking task, avoiding window creation on the native
+event thread. A launch without a folder focuses the most recently focused
+window; `emdeck --project <folder>` or one folder argument opens or focuses that
+folder. Session-server and reporter CLI modes dispatch before the GUI plugin.
+The production app identifier and storage keys are unchanged. Native acceptance
+builds use an explicitly separate test identifier and WebView profile.
+
 Terminal launch inputs are sampled when its identity/restart counter changes.
 Appearance updates reconfigure the existing terminal. Hidden and maximized panes
 remain mounted. CodeMirror samples a document on tab switches and separately
 applies content/theme updates, preserving per-file undo history.
+
+The shared terminal fitter preserves either output following or a marker at the
+historical line being read. Markers track reflow and trimming through rapid
+resizes and are released after restoration, cancellation or disposal.
+Restoration waits for xterm's viewport synchronization and never carries a
+position into a different buffer. Both terminal views cancel pending restoration
+on wheel, pointer, keyboard and touch interaction so user input takes
+precedence.
+
+Background pane layout belongs to the agents feature. Pure tree and geometry
+services handle presets, docking, swapping, minimum sizes and split ratios; the
+view persists a validated layout under `relay:session-layout`. A flat set of
+keyed terminal views receives new rectangles without changing its React parent
+or attachment lifetime. Workspace filters prune only the visible projection.
+Pointer capture handles internal pane dragging independently of native file
+drops. Rearranging panes never mutates server workspaces or starts processes;
+each device remembers its own view arrangement.
+
+`SessionSidebar` owns sidebar visibility, filters and machine-group disclosures;
+`SessionMachineCard` presents sessions and explicit connection controls. Hiding
+the sidebar changes its width and content visibility without unmounting forms or
+the sibling terminal canvas. Machine connections remain owned by
+`useSessionMachines`, independent of sidebar visibility. The additive
+`relay:session-sidebar-collapsed` preference leaves existing session and layout
+keys intact.
+
+`TerminalContent` composes one flat terminal canvas across Panes, Workspaces and
+Background sessions. `useTerminalSessions` coordinates foreground selection with
+`useSessionDesk`, the single owner of background connections and attachments.
+Workspaces lists server sessions by machine and workspace, with explicit attach
+and machine-management actions; the ordinary grid and background split tree
+change presentation without moving a terminal to a different React parent.
+Background layouts and attached-view keys retain their existing storage format.
+The pure background-workspace projection keeps machine-qualified IDs distinct;
+the status presenter uses server evidence and labels disconnected snapshots as
+offline. Merely listing a session does not take an input lease or launch it.
+
+The Workspaces rail remembers its compact mode under the additive
+`relay:workspace-sidebar-collapsed` preference. `SessionRailJob` presents the
+same status model and theme tokens in both sizes. Collapse only changes sidebar
+presentation; it does not touch the sibling terminal canvas or its connections.
+The compact list pauses the hidden text search while retaining the explicit
+attention filter, so an old query cannot conceal a waiting job. Expanded search
+text is restored on expansion. Mini jobs retain status icons, accessible names,
+full hover details and keyboard focus; their list scrolls independently.
 
 Desktop terminals observe xterm's OSC title events and publish bounded plain
 text metadata without changing pane identity or launch inputs. The agents
@@ -157,6 +232,25 @@ imports. Manual drafts survive file selection and failed saves, and participate
 in the native window's unsaved-edit check. Open editor buffers are checked
 before reading and applying a resolution; unsaved tabs must be saved or closed.
 Shared modal keyboard handling belongs only to the topmost dialog.
+
+The merge review shows read-only source panes and an editable result through the
+same typed render slot. The editor feature owns CodeMirror, language loading,
+syntax themes, decorations and undo. The Git service uses CodeMirror's pure diff
+utility with bounded detailed scanning to compare against the common ancestor.
+Marker-free projections locate conflicts in each source without searching for
+potentially repeated block text. Navigation reveals corresponding positions in
+all three panes; the first per-block choice replaces the selected marker range.
+Drafts retain stable block identities and result boundaries after that choice.
+The opposite source then offers replacement or appending below that block,
+without changing surrounding code. CodeMirror records block metadata alongside
+its text history so undo/redo restores both boundaries and available choices.
+Edits crossing a block boundary disable its arrows instead of guessing a new
+replacement range. Reloaded source versions are compared with the draft's
+original sides, preventing undo from re-enabling arrows for outdated versions.
+Non-conflicting edits supplied by Git remain in the initial result. All offsets
+used for presentation are normalized to CodeMirror's LF positions while saved
+drafts retain their original line endings. Review computations run only for the
+selected conflict file; no project scanning is introduced.
 
 Discard actions compose in `useDiscardActions`. The native `git_discard` service
 prepares an explicit tracked-file selection, including both ends of a rename,

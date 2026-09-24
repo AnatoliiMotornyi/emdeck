@@ -22,7 +22,7 @@ test.beforeEach(async ({ page }) => {
           case 'startup_project':
             return '/projects/agents';
           case 'open_project':
-            return { root: args.path, name: 'agents' };
+            return { kind: 'opened', project: { root: args.path, name: 'agents' } };
           case 'read_directory':
             return [];
           case 'read_file':
@@ -215,18 +215,26 @@ test('customization persists; filtering and hiding details leave sessions alive'
   await page.getByLabel('Find agents').clear();
   expect(await countCalls(page, 'terminal_close')).toBe(0);
   await page.reload();
+  // The reopened project respawns the terminals it had.
+  await expect(page.getByRole('region', { name: 'Claude terminal', exact: true })).toHaveCount(1);
+  await expect(page.getByRole('region', { name: 'Terminal terminal', exact: true })).toHaveCount(1);
   await page.getByTitle('Customize agent overview').click();
   await expect(page.getByLabel('Estimated session cost', { exact: true })).not.toBeChecked();
   await expect(page.getByLabel('Compact cards', { exact: true })).toBeChecked();
   await expect(page.getByLabel('Claude usage integration', { exact: true })).not.toBeChecked();
   await page.getByTitle('Customize agent overview').click();
-  await launch(page, 'Claude');
-  const enhanced = await page.evaluate(
-    () =>
-      (
-        window as unknown as { __calls: { command: string; args: { enhancedUsage: boolean } }[] }
-      ).__calls.find(c => c.command === 'terminal_spawn')!.args.enhancedUsage
-  );
+  await page.getByRole('button', { name: 'New terminal', exact: true }).click();
+  await page
+    .locator('.agent-option')
+    .filter({ has: page.getByText('Claude', { exact: true }) })
+    .click();
+  await expect(page.getByRole('region', { name: 'Claude terminal', exact: true })).toHaveCount(2);
+  const enhanced = await page.evaluate(() => {
+    const spawns = (
+      window as unknown as { __calls: { command: string; args: { enhancedUsage: boolean } }[] }
+    ).__calls.filter(c => c.command === 'terminal_spawn');
+    return spawns[spawns.length - 1].args.enhancedUsage;
+  });
   expect(enhanced).toBe(false);
 });
 

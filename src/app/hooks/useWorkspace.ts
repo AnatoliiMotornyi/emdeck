@@ -7,6 +7,7 @@ import { useGitActions } from './useGitActions';
 import { useLayoutActions } from './useLayoutActions';
 import { useProjectActions } from './useProjectActions';
 import { useRunActions } from './useRunActions';
+import { useShelfActions } from './useShelfActions';
 import { useTabActions } from './useTabActions';
 import { useTerminalActions } from './useTerminalActions';
 import { useWorkspaceLifecycle } from './useWorkspaceLifecycle';
@@ -47,6 +48,10 @@ export function useWorkspace() {
     ...editorActions,
     ...tabActions,
   });
+  const shelfActions = useShelfActions({
+    ...workspaceState,
+    ...workspaceRefresh,
+  });
   const layoutActions = useLayoutActions({
     ...workspaceState,
   });
@@ -85,6 +90,7 @@ export function useWorkspace() {
     ...explorerActions,
     ...tabActions,
     ...gitActions,
+    ...shelfActions,
     ...layoutActions,
     ...workspaceLifecycle,
     activeConflicts,

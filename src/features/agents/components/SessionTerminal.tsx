@@ -3,6 +3,7 @@ import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
 import { useEffect, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { sessionCall } from '../../../platform/desktop/sessions';
 import type { SessionPane, SessionRead } from '../../../shared/contracts/sessions';
 import type { Settings } from '../../../shared/contracts/workspace';
@@ -10,6 +11,7 @@ import { terminalInput } from '../services/session-model';
 import { createTerminalFitter } from '../services/terminal-fit';
 import { bindTerminalAttachments } from '../lib/terminalAttachments';
 import { bindTerminalKeyboard } from '../lib/terminalKeyboard';
+import { terminalFont } from '../lib/terminal-font';
 
 interface Props {
   connection: string;
@@ -18,6 +20,9 @@ interface Props {
   onDetach: () => void;
   onStop: () => void;
   onMaximize: () => void;
+  arrangeControl?: ReactNode;
+  onFocus?: () => void;
+  focusRequest?: number;
 }
 export default function SessionTerminal({
   connection,
@@ -26,6 +31,9 @@ export default function SessionTerminal({
   onDetach,
   onStop,
   onMaximize,
+  arrangeControl,
+  onFocus,
+  focusRequest = 0,
 }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const terminal = useRef<Terminal | null>(null);
@@ -44,7 +52,8 @@ export default function SessionTerminal({
     const client = crypto.randomUUID();
     const term = new Terminal({
       fontSize: appearance.current.terminalFontSize,
-      fontFamily: '"Cascadia Code", Consolas, monospace',
+      fontFamily: terminalFont(appearance.current.terminalFontFamily),
+      lineHeight: appearance.current.terminalLineHeight,
       scrollback: appearance.current.scrollback,
       theme: {
         background: appearance.current.theme === 'light' ? '#fafbfc' : '#111418',
@@ -59,6 +68,11 @@ export default function SessionTerminal({
       request: callback => requestAnimationFrame(callback),
       cancel: id => cancelAnimationFrame(id),
     });
+    const element = host.current;
+    element.addEventListener('wheel', fitter.cancel, { capture: true, passive: true });
+    element.addEventListener('pointerdown', fitter.cancel, true);
+    element.addEventListener('keydown', fitter.cancel, true);
+    element.addEventListener('touchstart', fitter.cancel, { capture: true, passive: true });
     const report = (error: unknown) => {
       if (!disposed) {
         setError(String(error));
@@ -145,6 +159,10 @@ export default function SessionTerminal({
       observer.disconnect();
       input.dispose();
       detachAttachments();
+      element.removeEventListener('wheel', fitter.cancel, true);
+      element.removeEventListener('pointerdown', fitter.cancel, true);
+      element.removeEventListener('keydown', fitter.cancel, true);
+      element.removeEventListener('touchstart', fitter.cancel, true);
       fitter.dispose();
       term.dispose();
       terminal.current = null;
@@ -155,7 +173,9 @@ export default function SessionTerminal({
   useEffect(() => {
     const term = terminal.current;
     if (term) {
+      term.options.fontFamily = terminalFont(settings.terminalFontFamily);
       term.options.fontSize = settings.terminalFontSize;
+      term.options.lineHeight = settings.terminalLineHeight;
       term.options.scrollback = settings.scrollback;
       term.options.theme = {
         background: settings.theme === 'light' ? '#fafbfc' : '#111418',
@@ -163,15 +183,26 @@ export default function SessionTerminal({
       };
       resizeCurrent.current?.();
     }
-  }, [settings.theme, settings.terminalFontSize, settings.scrollback]);
+  }, [
+    settings.theme,
+    settings.terminalFontFamily,
+    settings.terminalFontSize,
+    settings.terminalLineHeight,
+    settings.scrollback,
+  ]);
+  useEffect(() => {
+    if (focusRequest) terminal.current?.focus();
+  }, [focusRequest]);
   const handleTakeover = () => setTakeover(value => value + 1);
   const handleDismissAttachment = () => setAttachmentError('');
   return (
     <section
       className='terminal-pane session-terminal'
+      onFocusCapture={onFocus}
       aria-label={`${sessionName(pane)} persistent terminal`}
     >
       <header className='pane-header'>
+        {arrangeControl}
         <strong title={sessionName(pane)}>{sessionName(pane)}</strong>
         <span
           className={`session-state ${pane.agent.state}`}
