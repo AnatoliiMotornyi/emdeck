@@ -101,3 +101,29 @@ pub fn forget(home: &Path, id: &str) -> Result<()> {
         Err(e) => Err(error(e)),
     }
 }
+
+/// Public metadata only: credentials never leave native private storage.
+pub fn saved_machines(home: &Path) -> Result<Vec<PairedMachine>> {
+    let mut saved = Vec::new();
+    for entry in std::fs::read_dir(directory(home)?)
+        .map_err(error)?
+        .take(256)
+    {
+        let path = entry.map_err(error)?.path();
+        if path.extension().is_none_or(|extension| extension != "json") {
+            continue;
+        }
+        let Some(id) = path.file_stem().and_then(|id| id.to_str()) else {
+            continue;
+        };
+        // Ignore invalid/replaced entries without exposing or modifying their contents.
+        if let Ok(credential) = Credential::load(home, id) {
+            saved.push(PairedMachine {
+                credential: id.to_owned(),
+                address: credential.address.to_string(),
+            });
+        }
+    }
+    saved.sort_by(|a, b| a.credential.cmp(&b.credential));
+    Ok(saved)
+}

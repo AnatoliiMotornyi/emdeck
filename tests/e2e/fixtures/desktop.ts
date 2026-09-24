@@ -52,6 +52,36 @@ export const test = base.extend<{ desktop: void }>({
           invoke: async (command: string, args: Record<string, unknown> = {}) => {
             calls.push({ command, args });
             switch (command) {
+              case 'session_machines_load': {
+                const saved = JSON.parse(localStorage.getItem('test:machines') ?? '[]');
+                const legacy = args.legacy as { id: string }[];
+                for (const profile of legacy) {
+                  if (!saved.some((entry: { id: string }) => entry.id === profile.id))
+                    saved.push(profile);
+                }
+                localStorage.setItem('test:machines', JSON.stringify(saved));
+                return saved;
+              }
+              case 'session_machine_save': {
+                const profile = args.profile as { id: string };
+                const saved = JSON.parse(localStorage.getItem('test:machines') ?? '[]');
+                localStorage.setItem(
+                  'test:machines',
+                  JSON.stringify([
+                    ...saved.filter((entry: { id: string }) => entry.id !== profile.id),
+                    profile,
+                  ])
+                );
+                return null;
+              }
+              case 'session_machine_remove': {
+                const saved = JSON.parse(localStorage.getItem('test:machines') ?? '[]');
+                localStorage.setItem(
+                  'test:machines',
+                  JSON.stringify(saved.filter((entry: { id: string }) => entry.id !== args.id))
+                );
+                return null;
+              }
               case 'startup_project':
                 if (localStorage.getItem('test:delay-startup') === 'true')
                   await new Promise<void>(resolve => {

@@ -1,4 +1,5 @@
 import { useId } from 'react';
+import type { FormEvent } from 'react';
 import { ChevronDown, Folder, Monitor, Server, Settings2, TerminalSquare } from 'lucide-react';
 import type { MachineConnection, SessionPane } from '../../../shared/contracts/sessions';
 import { sessionCall } from '../../../platform/desktop/sessions';
@@ -17,6 +18,7 @@ interface Props {
   onConnect: () => void;
   onDisconnect: () => void;
   onRemove: () => void;
+  onRename: (name: string) => void;
   onWorkspace: (key: string) => void;
   onAttach: (machine: MachineConnection, pane: SessionPane) => void;
   onError: (message: string) => void;
@@ -32,6 +34,7 @@ export default function SessionMachineCard({
   onConnect,
   onDisconnect,
   onRemove,
+  onRename,
   onWorkspace,
   onAttach,
   onError,
@@ -39,6 +42,11 @@ export default function SessionMachineCard({
   const contentId = useId();
   const local = machine.profile.target.kind === 'local';
   const panes = machine.snapshot?.panes ?? [];
+  const handleRename = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const name = String(new FormData(event.currentTarget).get('machineName') ?? '').trim();
+    if (name) onRename(name);
+  };
   return (
     <section className='session-machine'>
       <button
@@ -176,6 +184,21 @@ export default function SessionMachineCard({
             <Settings2 size={13} />
             Machine settings
           </summary>
+          {!local && (
+            <form onSubmit={handleRename} className='session-machine-name'>
+              <label>
+                Saved machine name
+                <input
+                  key={machine.profile.name}
+                  name='machineName'
+                  defaultValue={machine.profile.name}
+                  maxLength={120}
+                  required
+                />
+              </label>
+              <button type='submit'>Save name</button>
+            </form>
+          )}
           <div className='session-machine-actions'>
             {machine.status === 'connected' && (
               <button type='button' onClick={onDisconnect}>

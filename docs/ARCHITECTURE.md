@@ -100,6 +100,16 @@ React receives public machine metadata only. Sharing is opt-in and cannot alter
 firewall settings or install network software. See
 [direct remote connections](TAILSCALE-SESSIONS.md).
 
+The runtime's machine registry stores public connection metadata in private
+per-user `machines.json`, alongside (never inside) the project configuration. An
+OS file lock serializes read/modify/atomic-write operations across windows and
+preview instances. Legacy WebView profiles migrate additively; recoverable
+pairing files restore missing entries without network access. Removed profile
+IDs prevent stale browser data from restoring forgotten SSH connections. Corrupt
+or newer-format registries are left untouched and reported in the UI. Only the
+originating WebView retains automatic reconnect consent; recovered machines wait
+for an explicit Connect. No tokens or certificates reach React.
+
 Each paired credential owns a small native pool of idle TLS connections. The
 optional reuse flag is acknowledged by the host; older hosts continue using one
 request per connection. Pool locks never span network IO, keeping screen and

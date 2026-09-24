@@ -3,6 +3,7 @@ pub mod cli;
 pub mod client;
 pub mod engine;
 pub mod hooks;
+pub mod machines;
 mod private;
 mod process;
 pub use process::killer as child_killer;
