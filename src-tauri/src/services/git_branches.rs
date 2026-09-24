@@ -288,6 +288,37 @@ fn update(root: &Path, target: &str, expected: &str) -> Result<String> {
     }
 }
 
+/// Bring the current branch up to date with `target` in one step: refresh both
+/// branches from their tracked branches, then merge `target` in. Every stage is
+/// skipped when it has nothing to do, so this is safe to repeat. Untracked
+/// branches are simply not refreshed; that is not an error, because a local-only
+/// branch still merges.
+fn sync(root: &Path, target: &str, expected: &str) -> Result<String> {
+    local_name(target)?;
+    let branch = format!("refs/heads/{expected}");
+    if target == branch {
+        return Err("This is already the current branch. Choose the branch to merge in.".into());
+    }
+    // Refuse before the first fetch, so a rejected run changes nothing at all.
+    clean(root)?;
+    let tracked = |reference: &str| -> Result<bool> {
+        Ok(branches(root)?
+            .iter()
+            .any(|b| b.reference == reference && b.upstream.is_some()))
+    };
+    let mut report = Vec::new();
+    for reference in [target, branch.as_str()] {
+        if tracked(reference)? {
+            report.push(update(root, reference, expected)?);
+        }
+    }
+    report.push(run(
+        root,
+        &["merge", "--no-edit", "--no-autostash", target],
+    )?);
+    Ok(report.join(" "))
+}
+
 pub fn action(root: &Path, request: &BranchRequest) -> Result<String> {
     let _operation = acquire(root)?;
     check_current(root, &request.expected_current)?;
@@ -366,6 +397,7 @@ pub fn action(root: &Path, request: &BranchRequest) -> Result<String> {
             )
         }
         "update" => update(root, target, &request.expected_current),
+        "sync" => sync(root, target, &request.expected_current),
         "checkout-update" => {
             // Preflight tracking before switching; errors after fetch leave the selected branch checked out.
             if target.starts_with("refs/heads/")

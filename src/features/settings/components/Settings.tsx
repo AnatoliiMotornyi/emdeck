@@ -47,6 +47,10 @@ export default function Settings({
     update({ terminalFontSize: Math.max(10, Math.min(24, +e.target.value)) });
   const handleChange7: React.ComponentProps<'select'>['onChange'] = e =>
     update({ scrollback: +e.target.value });
+  const handleChangeFontFamily: React.ComponentProps<'input'>['onChange'] = e =>
+    update({ terminalFontFamily: e.target.value });
+  const handleChangeLineHeight: React.ComponentProps<'select'>['onChange'] = e =>
+    update({ terminalLineHeight: +e.target.value });
   const handleChange8: React.ComponentProps<'input'>['onChange'] = e =>
     update({ detectRunScripts: e.target.checked });
   const handleChangeClick = () => (scope === 'project' ? onResetAll() : onChange(defaults));
@@ -248,6 +252,30 @@ export default function Settings({
             value={settings.terminalFontSize}
             onChange={handleChange6}
           />
+        </div>
+        <label className='field'>
+          Terminal font
+          <input
+            placeholder='JetBrainsMono Nerd Font Mono'
+            value={settings.terminalFontFamily}
+            onChange={handleChangeFontFamily}
+          />
+          <small>
+            Leave blank for the built-in stack. Nerd Font users want the Mono variant so powerline
+            glyphs stay one cell wide.
+          </small>
+        </label>
+        <div className='setting-row'>
+          <label htmlFor='terminal-line-height'>Terminal line height</label>
+          <select
+            id='terminal-line-height'
+            value={settings.terminalLineHeight}
+            onChange={handleChangeLineHeight}
+          >
+            <option value='1'>1.0 · tight, unbroken powerlines</option>
+            <option value='1.2'>1.2</option>
+            <option value='1.35'>1.35 · roomy</option>
+          </select>
         </div>
         <div className='setting-row'>
           <label htmlFor='scrollback'>Scrollback lines per pane</label>

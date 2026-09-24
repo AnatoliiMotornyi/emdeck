@@ -60,6 +60,12 @@ export const api = {
   createWorktree: (root: string, request: CreateWorktree) =>
     call('git_worktree_create', { root, request }),
   removeWorktree: (root: string, path: string) => call('git_worktree_remove', { root, path }),
+  shelves: (root: string) => call('shelf_list', { root }),
+  createShelf: (root: string, name: string, paths: string[]) =>
+    call('shelf_create', { root, name, paths }),
+  applyShelf: (root: string, id: string, force: boolean) =>
+    call('shelf_apply', { root, id, force }),
+  deleteShelf: (root: string, id: string) => call('shelf_delete', { root, id }),
 };
 export async function spawnTerminal(
   root: string,
@@ -70,7 +76,8 @@ export async function spawnTerminal(
   rows: number,
   onEvent: (event: TerminalEvent) => void,
   enhancedUsage = false,
-  remote?: SshTarget
+  remote?: SshTarget,
+  resume?: string
 ) {
   const channel = new Channel<TerminalEvent>();
   channel.onmessage = onEvent;
@@ -85,5 +92,6 @@ export async function spawnTerminal(
     rows,
     onEvent: channel,
     enhancedUsage,
+    resume: resume ?? null,
   });
 }

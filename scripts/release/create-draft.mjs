@@ -2,6 +2,7 @@ import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { copyFileSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { releaseNotes } from './changelog.mjs';
 import { metadata } from './metadata.mjs';
 import { root } from './tools.mjs';
 
@@ -40,11 +41,7 @@ const checksums = files.map(
 );
 writeFileSync(join(directory, 'SHA256SUMS.txt'), checksums.join('\n') + '\n');
 const changelog = readFileSync(join(root, 'CHANGELOG.md'), 'utf8');
-const notes = changelog
-  .split(`## ${version}`)[1]
-  .split('\n## ')[0]
-  .replace(/^\s*—[^\n]*\n/, '')
-  .trim();
+const notes = releaseNotes(changelog, version);
 const body = [
   `Emdeck ${version} — public beta`,
   '',

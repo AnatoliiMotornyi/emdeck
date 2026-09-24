@@ -95,11 +95,13 @@
 
 :root {
   --accent-ink: var(--accent);
+  --checkmark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23121418' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M19 7 10 17l-5-5'/%3E%3C/svg%3E");
   --terminal-bg: #111418;
 }
 
 :root[data-theme="light"] {
   --accent-ink: color-mix(in srgb, var(--accent) 37%, #172722);
+  --checkmark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f5f6f8' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M19 7 10 17l-5-5'/%3E%3C/svg%3E");
   --terminal-bg: #fafbfc;
 }
 

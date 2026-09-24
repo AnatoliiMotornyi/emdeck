@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { native } from '../../platform/desktop/api';
+import { PANE_COLORS } from '../../features/agents/lib/pane-store';
 import { paneName, terminalTitle } from '../../features/agents/services/terminal-title';
 import type { SshProfile } from '../../shared/contracts/remote';
 import type {
@@ -9,7 +10,6 @@ import type {
   PaneState,
 } from '../../shared/contracts/workspace';
 import type { useWorkspaceState } from './useWorkspaceState';
-const colors = ['#b8ee86', '#c4a0ed', '#8bbbf5', '#f1b17f', '#f38ea2'];
 type Dependencies = Pick<
   ReturnType<typeof useWorkspaceState>,
   | 'project'
@@ -75,7 +75,7 @@ export function useTerminalActions({
         command,
         cwd,
         shell: settings.shell,
-        color: colors[ps.length % colors.length],
+        color: PANE_COLORS[ps.length % PANE_COLORS.length],
         startedAt: Date.now(),
         remote,
       },

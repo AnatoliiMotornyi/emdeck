@@ -66,6 +66,14 @@ Agent-assisted contributions are welcome. Review generated code, understand its
 behavior and dependencies, and take responsibility for the final change. Do not
 include a private agent transcript as evidence.
 
+For user-facing changes, add a uniquely named Markdown release-note fragment in
+[`.changes/`](.changes/README.md), such as `.changes/terminal-scrollback.md`. Do
+not edit the shared `CHANGELOG.md` or another PR's fragment. Preview pending
+notes with `bun run changelog:preview`; validation runs in `bun run check`.
+Documentation-only, test-only and internal refactors may omit a fragment with an
+explanation in the PR. Maintainers combine notes only during release
+preparation.
+
 ```sh
 bun run verify
 cargo fmt --manifest-path src-tauri/Cargo.toml --check
