@@ -72,6 +72,7 @@ export interface DesktopCommands {
       cols: number;
       rows: number;
       enhancedUsage: boolean;
+      resume: string | null;
       onEvent: unknown;
     },
     string

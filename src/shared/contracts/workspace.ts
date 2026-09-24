@@ -126,6 +126,7 @@ export interface Pane {
   endedAt?: number;
   restart?: number;
   remote?: SshProfile;
+  resume?: string;
 }
 export type Layout = 'columns' | 'rows' | 'grid';
 export interface Settings {
@@ -133,6 +134,8 @@ export interface Settings {
   accent: string;
   fontSize: number;
   terminalFontSize: number;
+  terminalFontFamily: string;
+  terminalLineHeight: number;
   wordWrap: boolean;
   showHidden: boolean;
   shell: string;

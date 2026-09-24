@@ -67,7 +67,8 @@ export async function spawnTerminal(
   rows: number,
   onEvent: (event: TerminalEvent) => void,
   enhancedUsage = false,
-  remote?: SshTarget
+  remote?: SshTarget,
+  resume?: string
 ) {
   const channel = new Channel<TerminalEvent>();
   channel.onmessage = onEvent;
@@ -82,5 +83,6 @@ export async function spawnTerminal(
     rows,
     onEvent: channel,
     enhancedUsage,
+    resume: resume ?? null,
   });
 }

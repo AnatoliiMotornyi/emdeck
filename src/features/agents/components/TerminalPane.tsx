@@ -15,6 +15,7 @@ import type {
 } from '../../../shared/contracts/workspace';
 import { useLatest } from '../../../shared/hooks/useLatest';
 import { agentKind, agentStatus, inspectAgentScreen } from '../lib/agents';
+import { terminalFont } from '../lib/terminal-font';
 import { createTerminalFitter } from '../services/terminal-fit';
 import { remoteStatus } from '../services/connections';
 import { paneName } from '../services/terminal-title';
@@ -88,9 +89,9 @@ export default function TerminalPane({
     setObservation(undefined);
     const term = new Terminal({
       cursorBlink: false,
-      fontFamily: '"Cascadia Code", "SFMono-Regular", Consolas, "Liberation Mono", monospace',
+      fontFamily: terminalFont(settings.terminalFontFamily),
       fontSize: settings.terminalFontSize,
-      lineHeight: 1.35,
+      lineHeight: settings.terminalLineHeight,
       scrollback: settings.scrollback,
       allowProposedApi: false,
       theme: terminalTheme(settings.theme),
@@ -243,7 +244,8 @@ export default function TerminalPane({
             }
           },
           enhancedUsage,
-          pane.remote?.target
+          pane.remote?.target,
+          pane.resume
         );
         if (disposed) {
           await call('terminal_close', { id });
@@ -317,7 +319,9 @@ export default function TerminalPane({
   useEffect(() => {
     if (terminal.current) {
       terminal.current.options.theme = terminalTheme(settings.theme);
+      terminal.current.options.fontFamily = terminalFont(settings.terminalFontFamily);
       terminal.current.options.fontSize = settings.terminalFontSize;
+      terminal.current.options.lineHeight = settings.terminalLineHeight;
       terminal.current.options.scrollback = settings.scrollback;
       if (host.current?.clientWidth) {
         fitRef.current?.fit();
@@ -329,7 +333,13 @@ export default function TerminalPane({
           }).catch(() => {});
       }
     }
-  }, [settings.theme, settings.terminalFontSize, settings.scrollback]);
+  }, [
+    settings.theme,
+    settings.terminalFontFamily,
+    settings.terminalFontSize,
+    settings.terminalLineHeight,
+    settings.scrollback,
+  ]);
   return (
     <section
       className={`terminal-pane ${maximized ? 'maximized' : ''} ${selected ? 'selected-agent' : ''}`}

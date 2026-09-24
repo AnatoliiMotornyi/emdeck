@@ -147,7 +147,7 @@ impl Terminals {
         rows: u16,
         callback: impl Fn(TerminalEvent) -> bool + Send + Sync + 'static,
     ) -> Result<String> {
-        self.spawn_with_usage(cwd, shell, command, cols, rows, false, callback)
+        self.spawn_with_usage(cwd, shell, command, cols, rows, false, None, callback)
     }
     #[allow(clippy::too_many_arguments)]
     pub fn spawn_with_usage(
@@ -158,6 +158,7 @@ impl Terminals {
         cols: u16,
         rows: u16,
         enhanced_usage: bool,
+        resume: Option<&str>,
         callback: impl Fn(TerminalEvent) -> bool + Send + Sync + 'static,
     ) -> Result<String> {
         let reporting = enhanced_usage && command.trim() == "claude";
@@ -167,9 +168,12 @@ impl Terminals {
             crate::services::agent_usage::Probe::new()?
         };
         let launch = if reporting {
-            probe.command(shell)?
+            probe.command(shell, resume)?
         } else {
-            command.into()
+            match emdeck_session::agent::resume_command(command.trim(), resume) {
+                Some(args) => args.join(" "),
+                None => command.into(),
+            }
         };
         let mut command = shell_command(shell, &launch, cwd);
         command.env("EMDECK_AGENT_DIR", probe.directory());
@@ -335,6 +339,7 @@ pub fn spawn_channel(
     cols: u16,
     rows: u16,
     enhanced_usage: bool,
+    resume: Option<&str>,
     channel: Channel<TerminalEvent>,
 ) -> Result<String> {
     terminals.spawn_with_usage(
@@ -344,6 +349,7 @@ pub fn spawn_channel(
         cols,
         rows,
         enhanced_usage,
+        resume,
         move |event| channel.send(event).is_ok(),
     )
 }
