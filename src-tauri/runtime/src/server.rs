@@ -53,6 +53,7 @@ fn connection(
     remote: &crate::remote::Host,
 ) -> Result<()> {
     stream.set_nonblocking(false).map_err(error)?;
+    stream.set_nodelay(true).map_err(error)?;
     stream
         .set_read_timeout(Some(Duration::from_secs(5)))
         .map_err(error)?;

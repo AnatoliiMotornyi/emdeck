@@ -14,6 +14,8 @@ export const useSessionMachines = (active: boolean) => {
     restoreMachines(readStored('relay:session-machines', []))
   );
   const [states, setStates] = useState<Record<string, Omit<MachineConnection, 'profile'>>>({});
+  const [storageError, setStorageError] = useState('');
+  const editsDuringRestore = useRef(new Map<string, MachineProfile | null>());
   const connections = useRef(new Map<string, { cancelled: boolean; id?: string }>());
   const connect = useCallback(async (profile: MachineProfile) => {
     if (connections.current.has(profile.id)) return;
@@ -31,6 +33,7 @@ export const useSessionMachines = (active: boolean) => {
         await call('session_disconnect', { connection });
         return;
       }
+      editsDuringRestore.current.set(profile.id, { ...profile, enabled: true });
       setProfiles(previous =>
         previous.map(p => (p.id === profile.id ? { ...p, enabled: true } : p))
       );
@@ -64,6 +67,8 @@ export const useSessionMachines = (active: boolean) => {
     }
   }, []);
   const disconnect = (id: string) => {
+    const profile = profiles.find(p => p.id === id);
+    if (profile) editsDuringRestore.current.set(id, { ...profile, enabled: false });
     const task = connections.current.get(id);
     if (task) {
       task.cancelled = true;
@@ -80,12 +85,43 @@ export const useSessionMachines = (active: boolean) => {
   const [initialized, setInitialized] = useState(false);
   useEffect(() => {
     if (!active || autoConnected.current) return;
-    autoConnected.current = true;
-    const saved = restoreMachines(readStored('relay:session-machines', []));
-    setProfiles(saved);
-    setInitialized(true);
-    saved.filter(p => p.enabled).forEach(p => void connect(p));
-  }, [active, profiles, connect]);
+    let cancelled = false;
+    const legacy = restoreMachines(readStored('relay:session-machines', []));
+    const load = async () => {
+      try {
+        const durable = native
+          ? await call('session_machines_load', { legacy: legacy.filter(p => p.id !== 'local') })
+          : legacy;
+        if (cancelled) return;
+        const restored = restoreMachines(durable).map(profile => ({
+          ...profile,
+          enabled: legacy.some(
+            p =>
+              p.id === profile.id &&
+              p.enabled &&
+              JSON.stringify(p.target) === JSON.stringify(profile.target)
+          ),
+        }));
+        const merged = new Map(restored.map(profile => [profile.id, profile]));
+        for (const [id, profile] of editsDuringRestore.current) {
+          if (profile) merged.set(id, profile);
+          else merged.delete(id);
+        }
+        const saved = [...merged.values()];
+        autoConnected.current = true;
+        setProfiles(saved);
+        setInitialized(true);
+        setStorageError('');
+        saved.filter(p => p.enabled).forEach(p => void connect(p));
+      } catch (error) {
+        if (!cancelled) setStorageError(`Could not restore saved machines: ${String(error)}`);
+      }
+    };
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [active, connect]);
   useEffect(() => {
     if (initialized) store('relay:session-machines', profiles);
   }, [profiles, initialized]);
@@ -99,18 +135,31 @@ export const useSessionMachines = (active: boolean) => {
       tasks.clear();
     };
   }, []);
-  const save = (profile: MachineProfile) =>
-    setProfiles(previous => [...previous.filter(p => p.id !== profile.id), profile]);
+  const save = (profile: MachineProfile) => {
+    const persist = async () => {
+      try {
+        if (native) await call('session_machine_save', { profile });
+        editsDuringRestore.current.set(profile.id, profile);
+        setProfiles(previous => [...previous.filter(p => p.id !== profile.id), profile]);
+        setStorageError('');
+      } catch (error) {
+        setStorageError(`Could not save this machine: ${String(error)}`);
+      }
+    };
+    void persist();
+  };
   const remove = async (id: string) => {
     const profile = profiles.find(p => p.id === id);
     if (profile?.target.kind === 'direct')
       await call('session_forget', { credential: profile.target.credential });
+    if (native) await call('session_machine_remove', { id });
     disconnect(id);
+    editsDuringRestore.current.set(id, null);
     setProfiles(previous => previous.filter(p => p.id !== id || p.id === 'local'));
   };
   const machines: MachineConnection[] = profiles.map(profile => ({
     profile,
     ...(states[profile.id] ?? { status: 'offline' }),
   }));
-  return { machines, connect, disconnect, save, remove };
+  return { machines, connect, disconnect, save, remove, storageError };
 };

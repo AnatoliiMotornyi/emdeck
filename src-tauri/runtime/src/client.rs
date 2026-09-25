@@ -16,6 +16,7 @@ use std::{
 pub fn request(endpoint: &Endpoint, action: Action) -> Result<serde_json::Value> {
     let address = SocketAddr::from(([127, 0, 0, 1], endpoint.port));
     let mut stream = TcpStream::connect_timeout(&address, Duration::from_secs(3)).map_err(error)?;
+    stream.set_nodelay(true).map_err(error)?;
     stream
         .set_read_timeout(Some(Duration::from_secs(32)))
         .map_err(error)?;

@@ -1,5 +1,27 @@
 import { expect, test } from './fixtures/desktop';
 
+test('pointer focus loss inside the menu does not cancel terminal creation', async ({ page }) => {
+  const trigger = page.getByRole('button', { name: 'New terminal', exact: true });
+  await trigger.click();
+  const menu = page.getByRole('region', { name: 'New terminal options' });
+  const option = menu.getByRole('button', { name: 'Terminal Your default shell', exact: true });
+  // Reproduce WebKit's pointer-down blur with no replacement focus target in
+  // Chromium too, so the normal suite guards the event-order regression.
+  await option.evaluate(button => {
+    button.addEventListener('mousedown', event => {
+      event.preventDefault();
+      (document.activeElement as HTMLElement).blur();
+    });
+  });
+  await option.click();
+  await expect(page.getByRole('region', { name: 'Terminal terminal', exact: true })).toBeVisible();
+  await expect(menu).toHaveCount(0);
+  await trigger.click();
+  await menu.getByRole('button', { name: 'Custom command…', exact: true }).focus();
+  await page.keyboard.press('Tab');
+  await expect(menu).toHaveCount(0);
+});
+
 test('New terminal opens below the toolbar when terminals fill the workspace', async ({
   page,
 }, testInfo) => {

@@ -11,7 +11,7 @@ import type {
   Worktree,
 } from './workspace';
 import type { SshTarget } from './remote';
-import type { MachineTarget, SessionAction } from './sessions';
+import type { MachineProfile, MachineTarget, SessionAction } from './sessions';
 import type { ConflictResolution, GitConflict } from './gitConflicts';
 import type { DiscardPlan, DiscardRequest } from './gitDiscard';
 import type { OpenProjectResult, OpenWindowResult } from './projects';
@@ -22,6 +22,9 @@ type Repository = { root: string };
 
 /** Public IPC payloads. Window identity and authorization are injected by Tauri. */
 export interface DesktopCommands {
+  session_machines_load: Command<{ legacy: MachineProfile[] }, MachineProfile[]>;
+  session_machine_save: Command<{ profile: MachineProfile }, void>;
+  session_machine_remove: Command<{ id: string }, void>;
   session_pair: Command<{ code: string; name: string }, { credential: string; address: string }>;
   session_forget: Command<{ credential: string }, void>;
   session_connect: Command<{ target: MachineTarget }, string>;
@@ -31,6 +34,8 @@ export interface DesktopCommands {
   open_project_window: Command<{ path: string }, OpenWindowResult>;
   focus_project_window: Command<{ path: string }, string | null>;
   startup_project: Command<Record<string, never>, string | null>;
+  read_project_config: Command<Repository, string | null>;
+  write_project_config: Command<Repository & { content: string }, void>;
   read_directory: Command<FileLocation, Entry[]>;
   read_file: Command<FileLocation, FileData>;
   find_file: Command<{ root: string; name: string }, string[]>;

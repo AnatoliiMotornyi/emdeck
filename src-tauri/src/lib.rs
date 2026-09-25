@@ -76,6 +76,9 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::sessions::session_connect,
             commands::sessions::session_pair,
+            commands::sessions::session_machines_load,
+            commands::sessions::session_machine_save,
+            commands::sessions::session_machine_remove,
             commands::sessions::session_forget,
             commands::sessions::session_request,
             commands::sessions::session_disconnect,
@@ -83,6 +86,8 @@ pub fn run() {
             commands::projects::startup_project,
             commands::projects::open_project_window,
             commands::projects::focus_project_window,
+            commands::projects::read_project_config,
+            commands::projects::write_project_config,
             commands::workspace::read_directory,
             commands::workspace::read_file,
             commands::workspace::find_file,

@@ -20,6 +20,9 @@ mod stress;
 #[cfg(test)]
 mod color_tests;
 
+#[cfg(test)]
+mod test_support;
+
 #[cfg(all(test, windows))]
 mod environment_tests;
 
@@ -378,46 +381,24 @@ mod tests {
     #[test]
     fn real_pty_streams_unicode_and_exit() {
         let temp = tempfile::tempdir().unwrap();
-        let terminals = Terminals::default();
-        let (tx, rx) = std::sync::mpsc::channel();
         let command = if cfg!(windows) {
-            "Write-Output 'emdeck-pty-ok'; exit 0"
+            "[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false); [Console]::WriteLine('EMDECK_PTY_READY'); $line = [Console]::ReadLine(); [Console]::WriteLine(('emdeck-pty-ok: café λ 🚀 ' + $line)); exit 0"
         } else {
-            "printf 'emdeck-pty-ok\\n'; exit 0"
+            "printf 'EMDECK_PTY_READY\\n'; IFS= read -r line; printf 'emdeck-pty-ok: café λ 🚀 %s\\n' \"$line\"; exit 0"
         };
-        let id = terminals
-            .spawn(temp.path(), "", command, 80, 24, move |e| {
-                tx.send(e).is_ok()
-            })
+        let mut terminal = test_support::HeadlessTerminal::spawn(temp.path(), command);
+        // Drain and answer the startup handshake before synchronously resizing ConPTY.
+        terminal.wait_for_output("EMDECK_PTY_READY");
+        terminal.terminals.resize(&terminal.id, 120, 40).unwrap();
+        terminal
+            .terminals
+            .write(&terminal.id, "input-ok\r")
             .unwrap();
-        let _ = terminals.resize(&id, 100, 30);
-        let mut output = vec![];
-        loop {
-            match rx
-                .recv_timeout(std::time::Duration::from_secs(15))
-                .unwrap_or_else(|e| {
-                    panic!(
-                        "PTY timeout: {e}; output={:?}",
-                        String::from_utf8_lossy(&output)
-                    )
-                }) {
-                TerminalEvent::Data { data } => {
-                    output.extend(data);
-                    // Headless tests must answer ConPTY's initial cursor query like xterm does.
-                    if output.windows(4).any(|w| w == b"\x1b[6n") {
-                        let _ = terminals.write(&id, "\x1b[1;1R");
-                    }
-                }
-                TerminalEvent::Exit { code } => {
-                    assert_eq!(code, Some(0));
-                    break;
-                }
-                TerminalEvent::Usage { .. } | TerminalEvent::Command { .. } => {
-                    panic!("Plain shells must not create agent probes")
-                }
-            }
-        }
-        assert!(String::from_utf8_lossy(&output).contains("emdeck-pty-ok"));
-        assert!(terminals.sessions.lock().unwrap().is_empty());
+        let output = terminal.finish();
+        let output = String::from_utf8_lossy(&output);
+        assert!(
+            output.contains("emdeck-pty-ok: café λ 🚀 input-ok"),
+            "{output:?}"
+        );
     }
 }

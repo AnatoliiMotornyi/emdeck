@@ -1,5 +1,5 @@
+pub(crate) use emdeck_session::machines::Target;
 use emdeck_session::{client, protocol::Action, remote, ssh, storage, Result};
-use serde::Deserialize;
 use std::{
     collections::HashMap,
     sync::{
@@ -7,20 +7,6 @@ use std::{
         Arc, Mutex,
     },
 };
-
-#[derive(Deserialize)]
-#[serde(tag = "kind", rename_all = "lowercase", deny_unknown_fields)]
-pub(crate) enum Target {
-    Local,
-    Direct {
-        credential: String,
-    },
-    Ssh {
-        host: String,
-        port: Option<u16>,
-        binary: String,
-    },
-}
 
 #[cfg(test)]
 mod tests {

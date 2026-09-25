@@ -72,6 +72,12 @@ jobs:
         if: runner.os != 'Windows'
         run: bunx playwright install --with-deps chromium
       - run: bun run test:e2e
+      - name: Install WebKit
+        if: runner.os == 'macOS'
+        run: bunx playwright install webkit
+      - name: Check macOS terminal menu in WebKit
+        if: runner.os == 'macOS'
+        run: bunx playwright test --config playwright.webkit.config.ts
       - run: bun run tauri build --no-bundle
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()

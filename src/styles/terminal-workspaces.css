@@ -314,6 +314,13 @@
   overflow: hidden;
   white-space: nowrap;
 }
+/* The maximized tab already owns the filled background, so focus is marked by
+   an underline instead: both can be true at once and must stay legible. */
+.session-tabs button.focused {
+  color: var(--accent-ink);
+  font-weight: 600;
+  box-shadow: inset 0 -2px 0 var(--accent);
+}
 .connection-list {
   max-height: 50vh;
   overflow: auto;

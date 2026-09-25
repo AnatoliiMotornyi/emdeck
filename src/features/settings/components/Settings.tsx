@@ -1,15 +1,32 @@
 import { Check, Monitor, Moon, Sun } from 'lucide-react';
+import type { SettingsOverrides } from '../../../shared/contracts/projectConfig';
 import type { Settings as SettingsType } from '../../../shared/contracts/workspace';
 import { Modal } from '../../../shared/ui/Dialog';
 import { accentPresets } from '../lib/accents';
 import { defaults } from '../lib/defaults';
+import type { SettingsScope } from './SettingsScope';
+import { OverrideMarker, ScopeSelector } from './SettingsScope';
 export default function Settings({
   settings,
+  overrides,
+  scope,
+  projectScopeAvailable,
+  projectName,
+  onScopeChange,
   onChange,
+  onReset,
+  onResetAll,
   onClose,
 }: {
   settings: SettingsType;
-  onChange: (s: SettingsType) => void;
+  overrides: SettingsOverrides;
+  scope: SettingsScope;
+  projectScopeAvailable: boolean;
+  projectName: string;
+  onScopeChange: (scope: SettingsScope) => void;
+  onChange: (change: Partial<SettingsType>) => void;
+  onReset: (field: keyof SettingsOverrides) => void;
+  onResetAll: () => void;
   onClose: () => void;
 }) {
   const handleChange: React.ComponentProps<'input'>['onChange'] = e =>
@@ -36,31 +53,44 @@ export default function Settings({
     update({ terminalLineHeight: +e.target.value });
   const handleChange8: React.ComponentProps<'input'>['onChange'] = e =>
     update({ detectRunScripts: e.target.checked });
-  const handleChangeClick = () => onChange(defaults);
-  const update = (s: Partial<SettingsType>) => onChange({ ...settings, ...s });
+  const handleChangeClick = () => (scope === 'project' ? onResetAll() : onChange(defaults));
+  // Only the changed keys travel upward. A whole settings object handed to the
+  // global layer is the very bug the project layer exists to prevent.
+  const update = (change: Partial<SettingsType>) => onChange(change);
+  const marker = (field: keyof SettingsOverrides) => (
+    <OverrideMarker field={field} overrides={overrides} scope={scope} onReset={onReset} />
+  );
   const activePreset = accentPresets.find(preset => preset.value === settings.accent)?.value ?? '';
   return (
     <Modal title='Make room for your workflow' onClose={onClose} wide>
       <p className='dialog-description'>
         A few thoughtful settings. Everything else stays out of your way.
       </p>
-      <div className='settings-section'>
-        <h3>Startup</h3>
-        <div className='setting-row'>
-          <label htmlFor='reopen-project'>
-            Reopen last project on startup
-            <small>
-              Return to the project you last used. Turn off to start with an empty workspace.
-            </small>
-          </label>
-          <input
-            id='reopen-project'
-            type='checkbox'
-            checked={settings.reopenLastProject}
-            onChange={handleChange}
-          />
+      <ScopeSelector
+        scope={scope}
+        available={projectScopeAvailable}
+        projectName={projectName}
+        onChange={onScopeChange}
+      />
+      {scope === 'global' && (
+        <div className='settings-section'>
+          <h3>Startup</h3>
+          <div className='setting-row'>
+            <label htmlFor='reopen-project'>
+              Reopen last project on startup
+              <small>
+                Return to the project you last used. Turn off to start with an empty workspace.
+              </small>
+            </label>
+            <input
+              id='reopen-project'
+              type='checkbox'
+              checked={settings.reopenLastProject}
+              onChange={handleChange}
+            />
+          </div>
         </div>
-      </div>
+      )}
       <div className='settings-section'>
         <h3>Appearance</h3>
         <div className='theme-options'>
@@ -92,11 +122,13 @@ export default function Settings({
             );
           })}
         </div>
+        {marker('theme')}
         <div className='setting-row'>
           <div>
             <strong>Accent color</strong>
             <small>A small touch of personality.</small>
           </div>
+          {marker('accent')}
           <div className='swatches'>
             {['#b8ee86', '#8bbbf5', '#c4a0ed', '#f1b17f', '#f38ea2'].map(accent => {
               const handleClick = () => update({ accent });
@@ -161,6 +193,7 @@ export default function Settings({
             );
           })}
         </div>
+        {marker('terminalPlacement')}
         <p className='layout-setting-note'>
           Drag panel dividers to resize. Use arrow keys on a focused divider, or double-click it to
           reset.
@@ -170,6 +203,7 @@ export default function Settings({
         <h3>Editor & explorer</h3>
         <div className='setting-row'>
           <label htmlFor='editor-size'>Editor font size</label>
+          {marker('fontSize')}
           <input
             id='editor-size'
             type='number'
@@ -181,10 +215,12 @@ export default function Settings({
         </div>
         <div className='setting-row'>
           <label htmlFor='wrap'>Wrap long lines</label>
+          {marker('wordWrap')}
           <input id='wrap' type='checkbox' checked={settings.wordWrap} onChange={handleChange3} />
         </div>
         <div className='setting-row'>
           <label htmlFor='hidden'>Show hidden files</label>
+          {marker('showHidden')}
           <input
             id='hidden'
             type='checkbox'
@@ -204,8 +240,10 @@ export default function Settings({
           />
           <small>Executable name or full path. Applies to new panes.</small>
         </label>
+        {marker('shell')}
         <div className='setting-row'>
           <label htmlFor='terminal-size'>Terminal font size</label>
+          {marker('terminalFontSize')}
           <input
             id='terminal-size'
             type='number'
@@ -241,6 +279,7 @@ export default function Settings({
         </div>
         <div className='setting-row'>
           <label htmlFor='scrollback'>Scrollback lines per pane</label>
+          {marker('scrollback')}
           <select id='scrollback' value={settings.scrollback} onChange={handleChange7}>
             <option value='500'>500 · minimal</option>
             <option value='3000'>3,000 · balanced</option>
@@ -258,6 +297,7 @@ export default function Settings({
               Read scripts and package-manager hints in the project root. Applies to all projects.
             </small>
           </label>
+          {marker('detectRunScripts')}
           <input
             id='detect-scripts'
             type='checkbox'
@@ -268,7 +308,7 @@ export default function Settings({
       </div>
       <footer className='dialog-footer'>
         <button className='button secondary' onClick={handleChangeClick}>
-          Reset defaults
+          {scope === 'project' ? 'Reset project overrides' : 'Reset defaults'}
         </button>
         <button className='button primary' onClick={onClose}>
           Done

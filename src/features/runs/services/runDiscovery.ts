@@ -176,6 +176,12 @@ export const restoreRuns = (saved: unknown, legacy: unknown): RunPreferences => 
     .map(run => ({ ...run, source: 'custom' as const }));
   return { ...emptyRuns, custom };
 };
+/** The project folder wins once it has a runs section; the old keys seed the first write. */
+export const migrateStoredRuns = (
+  stored: unknown,
+  savedPreferences: unknown,
+  legacyRuns: unknown
+): RunPreferences => restoreRuns(stored ?? savedPreferences, legacyRuns);
 export const rememberRun = (
   recent: RunPreferences['recent'],
   id: string,

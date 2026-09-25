@@ -36,6 +36,11 @@ export const test = base.extend<{ desktop: void }>({
             callbacks.get(id)?.({ event: 'tauri://drag-drop', id, payload });
           }
         };
+        // The native side stores each project's configuration in its own
+        // .emdeck/settings.json, so a key per root is what keeps two projects
+        // from sharing one blob. localStorage survives a reload the way the
+        // file system does; a project that has never been written reads null.
+        const configKey = (root: unknown) => `test:project-config:${String(root)}`;
         state.__TAURI_EVENT_PLUGIN_INTERNALS__ = { unregisterListener: () => {} };
         state.__TAURI_INTERNALS__ = {
           metadata: { currentWindow: { label: 'main' }, currentWebview: { label: 'main' } },
@@ -47,6 +52,36 @@ export const test = base.extend<{ desktop: void }>({
           invoke: async (command: string, args: Record<string, unknown> = {}) => {
             calls.push({ command, args });
             switch (command) {
+              case 'session_machines_load': {
+                const saved = JSON.parse(localStorage.getItem('test:machines') ?? '[]');
+                const legacy = args.legacy as { id: string }[];
+                for (const profile of legacy) {
+                  if (!saved.some((entry: { id: string }) => entry.id === profile.id))
+                    saved.push(profile);
+                }
+                localStorage.setItem('test:machines', JSON.stringify(saved));
+                return saved;
+              }
+              case 'session_machine_save': {
+                const profile = args.profile as { id: string };
+                const saved = JSON.parse(localStorage.getItem('test:machines') ?? '[]');
+                localStorage.setItem(
+                  'test:machines',
+                  JSON.stringify([
+                    ...saved.filter((entry: { id: string }) => entry.id !== profile.id),
+                    profile,
+                  ])
+                );
+                return null;
+              }
+              case 'session_machine_remove': {
+                const saved = JSON.parse(localStorage.getItem('test:machines') ?? '[]');
+                localStorage.setItem(
+                  'test:machines',
+                  JSON.stringify(saved.filter((entry: { id: string }) => entry.id !== args.id))
+                );
+                return null;
+              }
               case 'startup_project':
                 if (localStorage.getItem('test:delay-startup') === 'true')
                   await new Promise<void>(resolve => {
@@ -69,6 +104,16 @@ export const test = base.extend<{ desktop: void }>({
               case 'open_project_window':
                 if (state.__emdeckWindowError) throw 'Could not create a new window';
                 return { label: 'workspace-1', reused: state.__emdeckWindowReused === true };
+              case 'read_project_config':
+                return localStorage.getItem(configKey(args.root));
+              case 'write_project_config': {
+                const content = String(args.content ?? '');
+                // The 1 MB ceiling the Rust service enforces.
+                if (content.length > 1024 * 1024)
+                  throw 'Project configuration exceeds the 1 MB limit.';
+                localStorage.setItem(configKey(args.root), content);
+                return null;
+              }
               case 'read_directory':
                 return [{ name: 'notes.ts', path: 'notes.ts', isDir: false, isSymlink: false }];
               case 'read_file':

@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { Grid2X2, Plus, TerminalSquare } from 'lucide-react';
+import { Plus, TerminalSquare } from 'lucide-react';
 import type { ReactNode } from 'react';
 import type { TerminalPanelModel } from './terminal-panel-model';
 import type { TerminalSessions } from '../hooks/useTerminalSessions';
@@ -8,6 +8,7 @@ import SessionRail from '../../features/agents/components/SessionRail';
 import SessionDesk from '../../features/agents/components/SessionDesk';
 import SessionNotices from '../../features/agents/components/SessionNotices';
 import SessionCanvas from '../../features/agents/components/SessionCanvas';
+import SessionTabs from './SessionTabs';
 import { paneName, sessionName } from '../../features/agents/services/terminal-title';
 import type { RemoteProfile } from '../../shared/contracts/remote';
 const TerminalPane = lazy(() => import('../../features/agents/components/TerminalPane'));
@@ -241,47 +242,13 @@ export default function TerminalContent({
       <div className='terminal-canvas session-stage'>
         {workspace.view !== 'panes' && <SessionNotices model={background} />}
         {workspace.view === 'workspaces' && (
-          <div className='session-tabs' role='toolbar' aria-label='Session tabs'>
-            <button
-              className={!maxPane && !workspace.maxBackground ? 'active' : ''}
-              aria-pressed={!maxPane && !workspace.maxBackground}
-              onClick={workspace.clearMaximized}
-            >
-              <Grid2X2 size={13} />
-              Split view
-            </button>
-            {workspace.visiblePanes.map(pane => {
-              const handleSelect = () => workspace.selectPane(pane);
-              const handleRenameTab = () => void renameAgent(pane);
-              return (
-                <button
-                  key={pane.id}
-                  className={maxPane === pane.id ? 'active' : ''}
-                  aria-pressed={maxPane === pane.id}
-                  title={`${paneName(pane)} — double-click to rename`}
-                  onClick={handleSelect}
-                  onDoubleClick={handleRenameTab}
-                >
-                  <i style={{ background: pane.color }} />
-                  {paneName(pane)}
-                </button>
-              );
-            })}
-            {visibleBackground.map(session => {
-              const handleSelect = () => workspace.selectBackground(session);
-              return (
-                <button
-                  key={session.key}
-                  className={workspace.maxBackground === session.key ? 'active' : ''}
-                  aria-pressed={workspace.maxBackground === session.key}
-                  onClick={handleSelect}
-                  title={`${session.machine.profile.name} · Background`}
-                >
-                  {sessionName(session.pane)} · Background
-                </button>
-              );
-            })}
-          </div>
+          <SessionTabs
+            workspace={workspace}
+            maxPane={maxPane}
+            selectedPane={selectedPane}
+            background={visibleBackground}
+            onRename={handleRename}
+          />
         )}
         <SessionCanvas
           active={server}
