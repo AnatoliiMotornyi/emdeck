@@ -24,7 +24,7 @@ const closeLongTerminal = async (page: Page) => {
       data: Array.from(new TextEncoder().encode(`\x1b]2;${title}\x07`)),
     });
   }, title);
-  await expect(terminal.locator('.pane-header strong')).toHaveText(title);
+  await expect(terminal.locator('.pane-title')).toHaveText(title);
   await terminal.locator('.pane-header button').last().click();
   return page.getByRole('dialog', { name: `Close ${title}?`, exact: true });
 };
